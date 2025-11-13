@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warna Utama -->
+    <color name="primary">#4CAF50</color>
+    <color name="primary_dark">#388E3C</color>
+    <color name="accent">#2196F3</color>
+
+    <!-- Warna Tambahan (YANG HILANG!) -->
+    <color name="mint_green">#66BB6A</color>      <!-- Hijau Mint -->
+    <color name="calm_blue">#42A5F5</color>       <!-- Biru Tenang -->
+
+    <!-- Latar & Teks -->
+    <color name="background">#FFFFFF</color>
+    <color name="card_background">#F5F5F5</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+
+
+    <!-- Tombol -->
+    <color name="button_income">#81C784</color>
+    <color name="button_expense">#FF8A80</color>
+</resources>
