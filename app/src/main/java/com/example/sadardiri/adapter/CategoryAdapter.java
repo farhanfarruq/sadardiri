@@ -1,4 +1,4 @@
-package com.example.sadardiri;
+package com.example.sadardiri.adapter;
 
 import android.database.Cursor;
 import android.view.LayoutInflater;
@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.sadardiri.database.DatabaseHelper;
 
 import java.util.ArrayList;
 

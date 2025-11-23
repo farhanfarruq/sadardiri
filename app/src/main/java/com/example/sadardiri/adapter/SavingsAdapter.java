@@ -1,4 +1,4 @@
-package com.example.sadardiri;
+package com.example.sadardiri.adapter;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -6,6 +6,10 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.sadardiri.R;
+import com.example.sadardiri.model.SavingsTarget;
+
 import java.util.List;
 
 public class SavingsAdapter extends RecyclerView.Adapter<SavingsAdapter.ViewHolder> {

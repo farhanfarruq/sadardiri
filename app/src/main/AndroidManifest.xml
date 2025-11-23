@@ -16,7 +16,7 @@
         android:theme="@style/Theme.SadarDiri">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,10 +24,10 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".AddHabitActivity" />
-        <activity android:name=".AddTransactionActivity" />
-        <activity android:name=".CategoryManagerActivity" />
-        <activity android:name=".AddSavingsTargetActivity" />
+        <activity android:name=".ui.AddHabitActivity" />
+        <activity android:name=".ui.AddTransactionActivity" />
+        <activity android:name=".ui.CategoryManagerActivity" />
+        <activity android:name=".ui.AddSavingsTargetActivity" />
 
         <receiver android:name=".DailyNotificationReceiver" android:enabled="true" android:exported="false" />
         <receiver android:name=".BootReceiver" android:enabled="true" android:exported="true">

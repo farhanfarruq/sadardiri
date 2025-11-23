@@ -11,6 +11,8 @@ import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
 
+import com.example.sadardiri.ui.MainActivity;
+
 public class DailyNotificationReceiver extends BroadcastReceiver {
 
     private static final String CHANNEL_ID = "daily_reminder_channel";

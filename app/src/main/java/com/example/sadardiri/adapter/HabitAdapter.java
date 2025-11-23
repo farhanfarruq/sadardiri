@@ -1,13 +1,16 @@
-package com.example.sadardiri;
+package com.example.sadardiri.adapter;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.sadardiri.model.Habit;
+import com.example.sadardiri.R;
+import com.example.sadardiri.database.DatabaseHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;

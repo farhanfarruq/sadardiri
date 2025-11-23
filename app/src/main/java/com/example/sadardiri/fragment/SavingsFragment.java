@@ -1,4 +1,4 @@
-package com.example.sadardiri;
+package com.example.sadardiri.fragment;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -14,6 +14,13 @@ import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.sadardiri.R;
+import com.example.sadardiri.model.SavingsTarget;
+import com.example.sadardiri.adapter.SavingsAdapter;
+import com.example.sadardiri.database.DatabaseHelper;
+import com.example.sadardiri.ui.AddSavingsTargetActivity;
+
 import java.util.ArrayList;
 import java.util.List;
 

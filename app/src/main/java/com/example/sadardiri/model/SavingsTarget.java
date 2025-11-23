@@ -1,4 +1,4 @@
-package com.example.sadardiri;
+package com.example.sadardiri.model;
 
 public class SavingsTarget {
     private int id;

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/background">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -10,15 +9,14 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Ringkasan Bulan Ini -->
+        <!-- KEUANGAN -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Ringkasan Bulan Ini"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -26,64 +24,77 @@
             android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/textIncome"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center">
+                android:text="Pemasukan\nRp 0"
+                android:textColor="#66BB6A"
+                android:textAlignment="center" />
 
-                <TextView
-                    android:id="@+id/textIncome"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Pemasukan\nRp 0"
-                    android:textColor="@color/mint_green"
-                    android:textSize="16sp"
-                    android:textAlignment="center" />
-
-            </LinearLayout>
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/textExpense"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center">
-
-                <TextView
-                    android:id="@+id/textExpense"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Pengeluaran\nRp 0"
-                    android:textColor="@color/calm_blue"
-                    android:textSize="16sp"
-                    android:textAlignment="center" />
-
-            </LinearLayout>
+                android:text="Pengeluaran\nRp 0"
+                android:textColor="#42A5F5"
+                android:textAlignment="center" />
         </LinearLayout>
 
-        <!-- Grafik Pie Chart -->
         <com.github.mikephil.charting.charts.PieChart
             android:id="@+id/pieChart"
             android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:layout_marginBottom="24dp" />
+            android:layout_height="200dp"
+            android:layout_marginBottom="16dp" />
 
-        <!-- Skor Kebiasaan -->
+        <!-- TABUNGAN (DIKECILKAN) -->
+        <TextView
+            android:id="@+id/textSavingsSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tabungan: Rp 0 / Rp 0"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="16dp" />
+
+        <!-- TRANSAKSI TERBARU -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Transaksi Terbaru"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerTransactions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+
+        <!-- KEBIASAAN -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kebiasaan Hari Ini"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
         <TextView
             android:id="@+id/textHabitScore"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Skor Kebiasaan: 0%"
-            android:textSize="16sp"
-            android:textColor="@color/text_primary"
+            android:text="Skor: 0%"
+            android:textSize="14sp"
             android:layout_marginBottom="8dp" />
 
-        <Button
-            android:id="@+id/btnLogHabit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Catat Kebiasaan"
-            android:layout_marginBottom="16dp" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerHabits"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
     </LinearLayout>
 </ScrollView>

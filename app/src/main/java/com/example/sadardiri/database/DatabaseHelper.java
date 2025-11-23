@@ -1,4 +1,4 @@
-package com.example.sadardiri;
+package com.example.sadardiri.database;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -166,5 +166,32 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
 
         return totalLast3Months / 3;
+    }
+
+    // === KATEGORI ===
+    public void addCategory(String name) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("name", name);
+        db.insert("categories", null, cv);
+        db.close();
+    }
+
+    // === LAPORAN ===
+    public Cursor getExpenseByCategory(String month) {
+        return getReadableDatabase().rawQuery(
+                "SELECT c.name, SUM(t.amount) FROM transactions t " +
+                        "JOIN categories c ON t.category_id = c.id " +
+                        "WHERE t.type='expense' AND substr(t.date,1,7)=? " +
+                        "GROUP BY c.name", new String[]{month});
+    }
+
+    public double getTotalExpenseByMonth(String month) {
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT SUM(amount) FROM transactions WHERE type='expense' AND substr(date,1,7)=?",
+                new String[]{month});
+        double total = c.moveToFirst() ? c.getDouble(0) : 0;
+        c.close();
+        return total;
     }
 }
