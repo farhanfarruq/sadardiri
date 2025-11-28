@@ -26,7 +26,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE habits (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, frequency TEXT)");
         db.execSQL("CREATE TABLE habit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, habit_id INTEGER, date TEXT)");
 
-        db.execSQL("INSERT INTO categories (name) VALUES ('Gaji'), ('Makan'), ('Transport'), ('Hiburan')");
+        // Kategori Default
+        db.execSQL("INSERT INTO categories (name) VALUES ('Gaji'), ('Makan'), ('Transport'), ('Hiburan'), ('Belanja'), ('Tagihan')");
     }
 
     @Override
@@ -39,7 +40,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    // === TRANSAKSI ===
+    // === TRANSAKSI (CRUD LENGKAP) ===
     public void addTransaction(double amount, String type, int categoryId, String note, String date) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues cv = new ContentValues();
@@ -52,6 +53,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void updateTransaction(int id, double amount, String type, int categoryId, String note, String date) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("amount", amount);
+        cv.put("type", type);
+        cv.put("category_id", categoryId);
+        cv.put("note", note);
+        cv.put("date", date);
+        db.update("transactions", cv, "id=?", new String[]{String.valueOf(id)});
+        db.close();
+    }
+
+    public void deleteTransaction(int id) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete("transactions", "id=?", new String[]{String.valueOf(id)});
+        db.close();
+    }
+
     public Cursor getAllTransactions() {
         return getReadableDatabase().rawQuery("SELECT t.*, c.name as category_name FROM transactions t LEFT JOIN categories c ON t.category_id = c.id ORDER BY date DESC", null);
     }
@@ -60,8 +79,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public Cursor getAllCategories() {
         return getReadableDatabase().rawQuery("SELECT * FROM categories", null);
     }
+    public void deleteCategory(int id) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete("categories", "id=?", new String[]{String.valueOf(id)});
+        db.close();
+    }
 
-    // === TABUNGAN ===
+    public void addCategory(String name) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("name", name);
+        db.insert("categories", null, cv);
+        db.close();
+    }
+
+    // === TABUNGAN (CRUD LENGKAP) ===
     public void addSavingsTarget(String name, double target, double current, String date) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues cv = new ContentValues();
@@ -73,17 +105,55 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void updateSavingsTargetDetails(int id, String name, double targetAmount) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("name", name);
+        cv.put("target_amount", targetAmount);
+        db.update("savings_targets", cv, "id=?", new String[]{String.valueOf(id)});
+        db.close();
+    }
+
+    public void updateSavingsAmount(int id, double newAmount) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("current_amount", newAmount);
+        db.update("savings_targets", cv, "id=?", new String[]{String.valueOf(id)});
+        db.close();
+    }
+
+    public void deleteSavingsTarget(int id) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete("savings_targets", "id=?", new String[]{String.valueOf(id)});
+        db.close();
+    }
+
     public Cursor getAllSavingsTargets() {
         return getReadableDatabase().rawQuery("SELECT * FROM savings_targets ORDER BY id DESC", null);
     }
 
-    // === KEBIASAAN ===
+    // === KEBIASAAN (CRUD LENGKAP) ===
     public void addHabit(String name, String frequency) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put("name", name);
         cv.put("frequency", frequency);
         db.insert("habits", null, cv);
+        db.close();
+    }
+
+    public void updateHabitName(int id, String name) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("name", name);
+        db.update("habits", cv, "id=?", new String[]{String.valueOf(id)});
+        db.close();
+    }
+
+    public void deleteHabit(int id) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete("habits", "id=?", new String[]{String.valueOf(id)});
+        db.delete("habit_logs", "habit_id=?", new String[]{String.valueOf(id)});
         db.close();
     }
 
@@ -132,7 +202,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return count;
     }
 
-    // === DASHBOARD ===
+    // === DASHBOARD & REPORTS ===
     public double getTotalIncomeThisMonth() {
         String month = new SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(new Date());
         Cursor c = getReadableDatabase().rawQuery(
@@ -153,31 +223,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return total;
     }
 
-    // === REPORTS ===
     public double predictMonthlyExpense() {
-        String query = "SELECT SUM(amount) FROM transactions " +
-                "WHERE type = 'expense' " +
-                "AND date >= date('now', '-3 months')";
-
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery(query, null);
+        Cursor cursor = getReadableDatabase().rawQuery("SELECT SUM(amount) FROM transactions WHERE type = 'expense' AND date >= date('now', '-3 months')", null);
         double totalLast3Months = cursor.moveToFirst() ? cursor.getDouble(0) : 0;
         cursor.close();
-        db.close();
-
         return totalLast3Months / 3;
     }
 
-    // === KATEGORI ===
-    public void addCategory(String name) {
-        SQLiteDatabase db = getWritableDatabase();
-        ContentValues cv = new ContentValues();
-        cv.put("name", name);
-        db.insert("categories", null, cv);
-        db.close();
-    }
-
-    // === LAPORAN ===
     public Cursor getExpenseByCategory(String month) {
         return getReadableDatabase().rawQuery(
                 "SELECT c.name, SUM(t.amount) FROM transactions t " +
@@ -186,12 +238,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         "GROUP BY c.name", new String[]{month});
     }
 
-    public double getTotalExpenseByMonth(String month) {
-        Cursor c = getReadableDatabase().rawQuery(
-                "SELECT SUM(amount) FROM transactions WHERE type='expense' AND substr(date,1,7)=?",
-                new String[]{month});
-        double total = c.moveToFirst() ? c.getDouble(0) : 0;
-        c.close();
-        return total;
+    public Cursor getIncomeByCategory(String month) {
+        return getReadableDatabase().rawQuery(
+                "SELECT c.name, SUM(t.amount) FROM transactions t " +
+                        "JOIN categories c ON t.category_id = c.id " +
+                        "WHERE t.type='income' AND substr(t.date,1,7)=? " +
+                        "GROUP BY c.name", new String[]{month});
     }
 }

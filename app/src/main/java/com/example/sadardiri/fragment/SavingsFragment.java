@@ -7,7 +7,7 @@ import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.View;
+import android.view.View; // Pastikan import ini ada
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
@@ -20,6 +20,7 @@ import com.example.sadardiri.model.SavingsTarget;
 import com.example.sadardiri.adapter.SavingsAdapter;
 import com.example.sadardiri.database.DatabaseHelper;
 import com.example.sadardiri.ui.AddSavingsTargetActivity;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,10 +29,14 @@ public class SavingsFragment extends Fragment {
 
     private DatabaseHelper dbHelper;
     private RecyclerView recyclerSavings;
-    private TextView textEmpty;
+
+    // PERBAIKAN 2: Ubah dari TextView menjadi View
+    private View textEmpty;
+
     private List<SavingsTarget> savingsList;
     private SavingsAdapter adapter;
     private BroadcastReceiver refreshReceiver;
+    private FloatingActionButton btnAddSavings;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -39,15 +44,18 @@ public class SavingsFragment extends Fragment {
 
         dbHelper = new DatabaseHelper(requireContext());
         recyclerSavings = view.findViewById(R.id.recyclerSavings);
-        textEmpty = view.findViewById(R.id.textEmptySavings);
-        Button btnAdd = view.findViewById(R.id.btnAddSavings);
 
+        // Inisialisasi View Empty State (LinearLayout di XML)
+        textEmpty = view.findViewById(R.id.textEmptySavings);
+
+        btnAddSavings = view.findViewById(R.id.btnAddSavings);
+
+        btnAddSavings.setOnClickListener(v -> startActivity(new Intent(requireContext(), AddSavingsTargetActivity.class)));
         recyclerSavings.setLayoutManager(new LinearLayoutManager(requireContext()));
         savingsList = new ArrayList<>();
         adapter = new SavingsAdapter(savingsList);
         recyclerSavings.setAdapter(adapter);
 
-        btnAdd.setOnClickListener(v -> startActivity(new Intent(requireContext(), AddSavingsTargetActivity.class)));
 
         loadSavings();
 
@@ -57,7 +65,13 @@ public class SavingsFragment extends Fragment {
                 loadSavings();
             }
         };
-        requireActivity().registerReceiver(refreshReceiver, new IntentFilter("REFRESH_SAVINGS"));
+        // Perbaikan: Menambahkan flag untuk registerReceiver (untuk Android terbaru)
+        androidx.core.content.ContextCompat.registerReceiver(
+                requireActivity(),
+                refreshReceiver,
+                new IntentFilter("REFRESH_SAVINGS"),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        );
 
         return view;
     }
@@ -76,6 +90,7 @@ public class SavingsFragment extends Fragment {
             cursor.close();
         }
 
+        // Logika Empty State
         if (savingsList.isEmpty()) {
             textEmpty.setVisibility(View.VISIBLE);
             recyclerSavings.setVisibility(View.GONE);

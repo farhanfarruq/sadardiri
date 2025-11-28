@@ -37,6 +37,7 @@ public class DashboardFragment extends Fragment {
 
     private DatabaseHelper dbHelper;
     private PieChart pieChart;
+    private View layoutEmptyChart; // View Empty State
     private TextView textIncome, textExpense, textHabitScore;
     private RecyclerView recyclerTransactions, recyclerHabits;
     private TextView textSavingsSummary;
@@ -44,8 +45,6 @@ public class DashboardFragment extends Fragment {
     private HabitDashboardAdapter habitAdapter;
     private ArrayList<Habit> habitList;
     private BroadcastReceiver refreshReceiver;
-    // Asumsi textEmpty ada di fragment_dashboard.xml
-    // private TextView textEmpty;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -54,19 +53,18 @@ public class DashboardFragment extends Fragment {
         dbHelper = new DatabaseHelper(requireContext());
 
         pieChart = view.findViewById(R.id.pieChart);
+        layoutEmptyChart = view.findViewById(R.id.layoutEmptyChart); // Init View
+
         textIncome = view.findViewById(R.id.textIncome);
         textExpense = view.findViewById(R.id.textExpense);
         textHabitScore = view.findViewById(R.id.textHabitScore);
         recyclerTransactions = view.findViewById(R.id.recyclerTransactions);
         recyclerHabits = view.findViewById(R.id.recyclerHabits);
         textSavingsSummary = view.findViewById(R.id.textSavingsSummary);
-        // textEmpty = view.findViewById(R.id.textEmptyTransactions); // Jika ada
 
-        // Setup RecyclerViews
         recyclerTransactions.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerHabits.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        // FIX 1: Inisialisasi TransactionAdapter di sini dengan list kosong
         transactionAdapter = new TransactionAdapter(requireContext(), new ArrayList<>());
         recyclerTransactions.setAdapter(transactionAdapter);
 
@@ -95,7 +93,7 @@ public class DashboardFragment extends Fragment {
         filter.addAction("REFRESH_FINANCE");
         filter.addAction("REFRESH_SAVINGS");
         filter.addAction("REFRESH_HABITS");
-        ContextCompat.registerReceiver(requireActivity(), refreshReceiver, filter, ContextCompat.RECEIVER_EXPORTED);
+        ContextCompat.registerReceiver(requireActivity(), refreshReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
         return view;
     }
@@ -103,8 +101,8 @@ public class DashboardFragment extends Fragment {
     private void loadSummary() {
         double income = dbHelper.getTotalIncomeThisMonth();
         double expense = dbHelper.getTotalExpenseThisMonth();
-        textIncome.setText("Pemasukan\nRp " + String.format("%,.0f", income));
-        textExpense.setText("Pengeluaran\nRp " + String.format("%,.0f", expense));
+        textIncome.setText("Rp " + String.format("%,.0f", income));
+        textExpense.setText("Rp " + String.format("%,.0f", expense));
     }
 
     private void loadChart() {
@@ -116,21 +114,28 @@ public class DashboardFragment extends Fragment {
         if (expense > 0) entries.add(new PieEntry((float) expense, "Pengeluaran"));
 
         if (entries.isEmpty()) {
-            pieChart.setNoDataText("Belum ada transaksi");
-            pieChart.invalidate();
+            // Tampilkan Empty State
+            pieChart.setVisibility(View.GONE);
+            layoutEmptyChart.setVisibility(View.VISIBLE);
             return;
         }
 
+        // Tampilkan Chart
+        pieChart.setVisibility(View.VISIBLE);
+        layoutEmptyChart.setVisibility(View.GONE);
+
         PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(Color.parseColor("#66BB6A"), Color.parseColor("#42A5F5"));
+        dataSet.setColors(Color.parseColor("#2E7D32"), Color.parseColor("#BA1A1A")); // Gunakan warna tema baru
         dataSet.setValueTextColor(Color.WHITE);
         dataSet.setValueTextSize(12f);
 
         PieData data = new PieData(dataSet);
         pieChart.setData(data);
         pieChart.getDescription().setEnabled(false);
-        pieChart.setCenterText("Keuangan Bulan Ini");
-        pieChart.setCenterTextSize(14f);
+        pieChart.setCenterText("Bulan Ini");
+        pieChart.setCenterTextSize(12f);
+        pieChart.setHoleRadius(40f);
+        pieChart.setTransparentCircleRadius(45f);
         pieChart.animateY(1000);
         pieChart.invalidate();
     }
@@ -149,25 +154,14 @@ public class DashboardFragment extends Fragment {
                 String note = cursor.getString(cursor.getColumnIndexOrThrow("note"));
                 String date = cursor.getString(cursor.getColumnIndexOrThrow("date"));
                 String category = cursor.getString(cursor.getColumnIndexOrThrow("category_name"));
-
-                // FIX 2: Mengkonversi Cursor ke List<Transaction>
                 list.add(new Transaction(id, amount, type, note, date, category));
                 cursor.moveToNext();
             }
         }
-
         if (cursor != null) cursor.close();
-
-        // FIX 3: Panggil setData pada adapter yang sudah diinisialisasi
         if (transactionAdapter != null) {
             transactionAdapter.setData(list);
         }
-
-        // Logika visibilitas list kosong (jika textEmpty ada)
-        // if (textEmpty != null) {
-        //     textEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
-        //     recyclerTransactions.setVisibility(list.isEmpty() ? View.GONE : View.VISIBLE);
-        // }
     }
 
     private void loadHabits() {
@@ -179,8 +173,6 @@ public class DashboardFragment extends Fragment {
                 int id = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
                 String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
                 boolean done = dbHelper.isHabitDoneToday(id, today);
-
-                // FIX 4: Gunakan konstruktor Habit yang baru (id, name, done(boolean))
                 habitList.add(new Habit(id, name, done));
             } while (cursor.moveToNext());
         }

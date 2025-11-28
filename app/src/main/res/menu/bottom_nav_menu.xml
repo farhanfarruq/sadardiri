@@ -3,27 +3,27 @@
 
     <item
         android:id="@+id/nav_dashboard"
-        android:icon="@drawable/ic_dashboard"
+        android:icon="@drawable/ic_dashboard_rounded"
         android:title="Dashboard" />
 
     <item
         android:id="@+id/nav_finance"
-        android:icon="@drawable/ic_finance"
+        android:icon="@drawable/ic_finance_rounded"
         android:title="Keuangan" />
 
     <item
         android:id="@+id/nav_savings"
-        android:icon="@drawable/ic_savings"
+        android:icon="@drawable/ic_savings_rounded"
         android:title="Tabungan" />
 
     <item
         android:id="@+id/nav_habits"
-        android:icon="@drawable/ic_habits"
+        android:icon="@drawable/ic_habits_rounded"
         android:title="Kebiasaan" />
 
     <item
         android:id="@+id/nav_reports"
-        android:icon="@drawable/ic_reports"
+        android:icon="@drawable/ic_reports_rounded"
         android:title="Laporan" />
 
 </menu>

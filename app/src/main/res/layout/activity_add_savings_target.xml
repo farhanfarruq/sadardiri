@@ -1,65 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="24dp"
+    android:background="@color/background">
 
-    <!-- Nama Target -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Target Baru"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="32dp" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
+        android:hint="Nama Target (Misal: Laptop)"
+        app:boxCornerRadiusTopStart="16dp"
+        app:boxCornerRadiusTopEnd="16dp"
+        app:boxCornerRadiusBottomStart="16dp"
+        app:boxCornerRadiusBottomEnd="16dp"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_marginBottom="16dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editTargetName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nama Target" />
+            android:inputType="textCapWords"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Jumlah Target -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
+        android:hint="Jumlah Target (Rp)"
+        app:boxCornerRadiusTopStart="16dp"
+        app:boxCornerRadiusTopEnd="16dp"
+        app:boxCornerRadiusBottomStart="16dp"
+        app:boxCornerRadiusBottomEnd="16dp"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_marginBottom="16dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editTargetAmount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Jumlah Target"
-            android:inputType="numberDecimal" />
+            android:inputType="numberDecimal"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Jumlah Saat Ini -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
+        android:hint="Tabungan Awal (Opsional)"
+        app:boxCornerRadiusTopStart="16dp"
+        app:boxCornerRadiusTopEnd="16dp"
+        app:boxCornerRadiusBottomStart="16dp"
+        app:boxCornerRadiusBottomEnd="16dp"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_marginBottom="24dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editCurrentAmount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Jumlah Saat Ini (opsional)"
-            android:inputType="numberDecimal" />
+            android:inputType="numberDecimal"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Tombol Pilih Tanggal -->
     <Button
         android:id="@+id/btnPickTargetDate"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Pilih Tanggal Target"
-        android:layout_marginTop="16dp" />
+        android:paddingVertical="14dp"
+        android:textColor="@color/primary"
+        app:strokeColor="@color/surface_variant"/>
 
-    <!-- Tombol Simpan -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
     <Button
         android:id="@+id/btnSaveTarget"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Simpan Target"
-        android:layout_marginTop="8dp" />
+        android:backgroundTint="@color/primary"
+        android:textColor="@color/on_primary"/>
 
 </LinearLayout>

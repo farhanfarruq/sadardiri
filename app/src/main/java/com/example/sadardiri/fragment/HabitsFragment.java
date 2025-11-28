@@ -13,11 +13,12 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.sadardiri.model.Habit; // Menggunakan model.Habit
+import com.example.sadardiri.model.Habit;
 import com.example.sadardiri.R;
 import com.example.sadardiri.adapter.HabitAdapter;
 import com.example.sadardiri.database.DatabaseHelper;
 import com.example.sadardiri.ui.AddHabitActivity;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,7 +32,11 @@ public class HabitsFragment extends Fragment {
     private DatabaseHelper dbHelper;
     private RecyclerView recyclerHabits;
     private TextView textHabitScore;
-    private Button btnAddHabit;
+
+    // Tambahkan variabel untuk View Empty State
+    private View layoutEmptyHabits;
+
+    private FloatingActionButton btnAddHabit;
     private HabitAdapter habitAdapter;
     private List<Habit> habitList;
 
@@ -43,15 +48,15 @@ public class HabitsFragment extends Fragment {
         recyclerHabits = view.findViewById(R.id.recyclerHabits);
         textHabitScore = view.findViewById(R.id.textHabitScore);
         btnAddHabit = view.findViewById(R.id.btnAddHabit);
+        // Inisialisasi View Empty State
+        layoutEmptyHabits = view.findViewById(R.id.layoutEmptyHabits);
 
         recyclerHabits.setLayoutManager(new LinearLayoutManager(requireContext()));
         habitList = new ArrayList<>();
-        // ASUMSI: HabitAdapter Anda menerima List<Habit> dan DatabaseHelper
         habitAdapter = new HabitAdapter(habitList, dbHelper);
         recyclerHabits.setAdapter(habitAdapter);
 
         btnAddHabit.setOnClickListener(v -> startActivity(new Intent(requireContext(), AddHabitActivity.class)));
-
         loadHabits();
         updateHabitScore();
 
@@ -67,15 +72,21 @@ public class HabitsFragment extends Fragment {
             do {
                 int id = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
                 String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
-
-                // FIX: Cek status selesai hari ini (boolean)
                 boolean done = dbHelper.isHabitDoneToday(id, today);
-
-                // FIX: Gunakan konstruktor Habit yang benar (id, name, done)
                 habitList.add(new Habit(id, name, done));
             } while (cursor.moveToNext());
         }
         cursor.close();
+
+        // LOGIKA TAMPILAN KOSONG
+        if (habitList.isEmpty()) {
+            layoutEmptyHabits.setVisibility(View.VISIBLE);
+            recyclerHabits.setVisibility(View.GONE);
+        } else {
+            layoutEmptyHabits.setVisibility(View.GONE);
+            recyclerHabits.setVisibility(View.VISIBLE);
+        }
+
         habitAdapter.notifyDataSetChanged();
     }
 

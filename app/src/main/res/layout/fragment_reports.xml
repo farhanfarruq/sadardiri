@@ -1,27 +1,143 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@color/background">
 
-    <Button
-        android:id="@+id/btnPickMonth"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Pilih Bulan" />
-
-    <com.github.mikephil.charting.charts.PieChart
-        android:id="@+id/pieChartReports"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginTop="16dp" />
-
-    <TextView
-        android:id="@+id/textPrediction"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Prediksi: Rp 0"
-        android:textSize="16sp"
-        android:layout_marginTop="16dp" />
+        android:background="@drawable/bg_header_rounded"
+        android:padding="24dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Laporan Bulanan"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Analisis pengeluaran dan pemasukan"
+                android:textSize="14sp"
+                android:textColor="#E0E0E0"/>
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnSettings"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_settings"
+            app:tint="@color/on_primary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <Button
+            android:id="@+id/btnPickMonth"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pilih Bulan"
+            android:textColor="@color/primary"
+            app:strokeColor="@color/primary"
+            android:layout_marginBottom="12dp"/>
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggleChartType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            app:checkedButton="@+id/btnChartExpense"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnChartExpense"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Pengeluaran"
+                android:textColor="@color/button_expense"/>
+
+            <Button
+                android:id="@+id/btnChartIncome"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Pemasukan"
+                android:textColor="@color/button_income"/>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <com.github.mikephil.charting.charts.PieChart
+            android:id="@+id/pieChartReports"
+            android:layout_width="match_parent"
+            android:layout_height="300dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutEmptyReport"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="200dp"
+                android:layout_height="150dp"
+                android:src="@drawable/img_empty_chart"
+                android:contentDescription="Laporan Kosong" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Data bulan ini kosong"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginTop="16dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Coba pilih bulan lain atau catat transaksi."
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textPrediction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Prediksi Pengeluaran: Rp 0"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:layout_marginTop="24dp" />
+    </LinearLayout>
 </LinearLayout>

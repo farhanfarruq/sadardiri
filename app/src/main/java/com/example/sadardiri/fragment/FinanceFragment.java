@@ -7,9 +7,9 @@ import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.View;
+import android.view.View; // Pastikan ada import ini
 import android.view.ViewGroup;
-import android.widget.Button; // Tambahkan import Button
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
@@ -21,8 +21,9 @@ import com.example.sadardiri.R;
 import com.example.sadardiri.model.Transaction;
 import com.example.sadardiri.adapter.TransactionAdapter;
 import com.example.sadardiri.database.DatabaseHelper;
-import com.example.sadardiri.ui.AddTransactionActivity; // Tambahkan import
-import com.example.sadardiri.ui.CategoryManagerActivity; // Tambahkan import
+import com.example.sadardiri.ui.AddTransactionActivity;
+import com.example.sadardiri.ui.CategoryManagerActivity;
+import com.google.android.material.floatingactionbutton.FloatingActionButton; // Tambahkan import ini
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +32,15 @@ public class FinanceFragment extends Fragment {
 
     private DatabaseHelper dbHelper;
     private RecyclerView recyclerTransactions;
-    private TextView textEmpty;
+
+    // PERBAIKAN 1: Ubah tipe data dari TextView menjadi View atau LinearLayout
+    private View textEmpty;
+
     private TransactionAdapter transactionAdapter;
     private BroadcastReceiver refreshReceiver;
-    // Deklarasi Button
-    private Button btnAddTransaction, btnManageCategory;
+    private FloatingActionButton btnAddTransaction;
+    private Button btnManageCategory;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -43,13 +48,13 @@ public class FinanceFragment extends Fragment {
 
         dbHelper = new DatabaseHelper(requireContext());
         recyclerTransactions = view.findViewById(R.id.recyclerTransactions);
+
+        // Inisialisasi View Empty State
         textEmpty = view.findViewById(R.id.textEmptyFinance);
 
-        // Inisialisasi Button
         btnAddTransaction = view.findViewById(R.id.btnAddTransaction);
         btnManageCategory = view.findViewById(R.id.btnManageCategory);
 
-        // Atur Listener Button
         btnAddTransaction.setOnClickListener(v -> {
             startActivity(new Intent(requireContext(), AddTransactionActivity.class));
         });
@@ -58,7 +63,6 @@ public class FinanceFragment extends Fragment {
             startActivity(new Intent(requireContext(), CategoryManagerActivity.class));
         });
 
-
         recyclerTransactions.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         transactionAdapter = new TransactionAdapter(requireContext(), new ArrayList<>());
@@ -66,13 +70,13 @@ public class FinanceFragment extends Fragment {
 
         loadTransactions();
 
-        // Register receiver untuk refresh data
         refreshReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 loadTransactions();
             }
         };
+        // Gunakan RECEIVER_EXPORTED atau NOT_EXPORTED sesuai target SDK (biasanya NOT_EXPORTED aman)
         ContextCompat.registerReceiver(requireActivity(), refreshReceiver, new IntentFilter("REFRESH_FINANCE"), ContextCompat.RECEIVER_NOT_EXPORTED);
 
         return view;
@@ -103,6 +107,7 @@ public class FinanceFragment extends Fragment {
             transactionAdapter.setData(transactionList);
         }
 
+        // Logika Empty State
         if (transactionList.isEmpty()) {
             textEmpty.setVisibility(View.VISIBLE);
             recyclerTransactions.setVisibility(View.GONE);
