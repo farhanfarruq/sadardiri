@@ -7,10 +7,12 @@ import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.View; // Pastikan import ini ada
+import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.TextView;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.LayoutAnimationController;
+
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -29,10 +31,7 @@ public class SavingsFragment extends Fragment {
 
     private DatabaseHelper dbHelper;
     private RecyclerView recyclerSavings;
-
-    // PERBAIKAN 2: Ubah dari TextView menjadi View
     private View textEmpty;
-
     private List<SavingsTarget> savingsList;
     private SavingsAdapter adapter;
     private BroadcastReceiver refreshReceiver;
@@ -44,18 +43,18 @@ public class SavingsFragment extends Fragment {
 
         dbHelper = new DatabaseHelper(requireContext());
         recyclerSavings = view.findViewById(R.id.recyclerSavings);
-
-        // Inisialisasi View Empty State (LinearLayout di XML)
         textEmpty = view.findViewById(R.id.textEmptySavings);
-
         btnAddSavings = view.findViewById(R.id.btnAddSavings);
 
+        Animation scaleUp = AnimationUtils.loadAnimation(requireContext(), R.anim.item_fall_down);
+        btnAddSavings.startAnimation(scaleUp);
+
         btnAddSavings.setOnClickListener(v -> startActivity(new Intent(requireContext(), AddSavingsTargetActivity.class)));
+
         recyclerSavings.setLayoutManager(new LinearLayoutManager(requireContext()));
         savingsList = new ArrayList<>();
         adapter = new SavingsAdapter(savingsList);
         recyclerSavings.setAdapter(adapter);
-
 
         loadSavings();
 
@@ -65,7 +64,6 @@ public class SavingsFragment extends Fragment {
                 loadSavings();
             }
         };
-        // Perbaikan: Menambahkan flag untuk registerReceiver (untuk Android terbaru)
         androidx.core.content.ContextCompat.registerReceiver(
                 requireActivity(),
                 refreshReceiver,
@@ -74,6 +72,17 @@ public class SavingsFragment extends Fragment {
         );
 
         return view;
+    }
+
+    // --- PERBAIKAN ANIMASI ---
+    private void runLayoutAnimation(RecyclerView recyclerView) {
+        if (recyclerView == null || recyclerView.getAdapter() == null) return;
+
+        final Context context = recyclerView.getContext();
+        final LayoutAnimationController controller =
+                AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_fall_down);
+        recyclerView.setLayoutAnimation(controller);
+        recyclerView.scheduleLayoutAnimation();
     }
 
     private void loadSavings() {
@@ -90,7 +99,6 @@ public class SavingsFragment extends Fragment {
             cursor.close();
         }
 
-        // Logika Empty State
         if (savingsList.isEmpty()) {
             textEmpty.setVisibility(View.VISIBLE);
             recyclerSavings.setVisibility(View.GONE);
@@ -98,7 +106,15 @@ public class SavingsFragment extends Fragment {
             textEmpty.setVisibility(View.GONE);
             recyclerSavings.setVisibility(View.VISIBLE);
         }
+
         adapter.notifyDataSetChanged();
+        runLayoutAnimation(recyclerSavings);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadSavings();
     }
 
     @Override

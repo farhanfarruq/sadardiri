@@ -2,8 +2,11 @@ package com.example.sadardiri.fragment;
 
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,7 +41,7 @@ public class ReportsFragment extends Fragment {
     private ImageView btnSettings;
     private MaterialButtonToggleGroup toggleChartType;
 
-    private String currentMonth = "2025-11";
+    private String currentMonth;
     private boolean isExpenseMode = true; // Default Pengeluaran
 
     @Override
@@ -53,15 +56,16 @@ public class ReportsFragment extends Fragment {
         btnSettings = view.findViewById(R.id.btnSettings);
         toggleChartType = view.findViewById(R.id.toggleChartType);
 
+        // Set Bulan Default ke Bulan Ini
         Calendar c = Calendar.getInstance();
         currentMonth = String.format("%d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1);
         btnPickMonth.setText(currentMonth);
 
+        // Listener Tombol
         btnPickMonth.setOnClickListener(v -> showMonthPicker());
-
-        // Panggil Dialog Pengaturan Custom
         btnSettings.setOnClickListener(v -> showSettingsDialog());
 
+        // Listener Toggle (Pemasukan / Pengeluaran)
         toggleChartType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
                 if (checkedId == R.id.btnChartExpense) isExpenseMode = true;
@@ -82,28 +86,34 @@ public class ReportsFragment extends Fragment {
         SwitchMaterial switchTheme = view.findViewById(R.id.switchTheme);
         View optionInfo = view.findViewById(R.id.optionInfo);
 
-        // Cek Tema Saat Ini
-        int currentMode = AppCompatDelegate.getDefaultNightMode();
-        switchTheme.setChecked(currentMode == AppCompatDelegate.MODE_NIGHT_YES);
+        // 1. Baca Settingan Tema
+        SharedPreferences prefs = requireContext().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        boolean isNightMode = prefs.getBoolean("night_mode", false);
+        switchTheme.setChecked(isNightMode);
 
-        // Logic Ganti Tema
+        // Logic Switch
         optionTheme.setOnClickListener(v -> switchTheme.toggle());
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            // 2. Simpan Pilihan User
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("night_mode", isChecked);
+            editor.apply();
+
+            // 3. Terapkan Tema & Restart
             if (isChecked) AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
             else AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
-            // Restart App untuk efek tema
             startActivity(new Intent(requireContext(), MainActivity.class));
             requireActivity().finish();
         });
 
-        // Logic Info App
+        // Logic Info
         optionInfo.setOnClickListener(v -> {
             try {
                 PackageInfo pInfo = requireContext().getPackageManager().getPackageInfo(requireContext().getPackageName(), 0);
                 new AlertDialog.Builder(requireContext())
                         .setTitle("Tentang SadarDiri")
-                        .setMessage("Versi: " + pInfo.versionName + "\n\nAplikasi Keuangan & Produktivitas Pribadi.")
+                        .setMessage("Versi: " + pInfo.versionName + "\n\nBuild with love.")
                         .setPositiveButton("Tutup", null)
                         .show();
             } catch (Exception e) {}
@@ -115,6 +125,7 @@ public class ReportsFragment extends Fragment {
 
     private void showMonthPicker() {
         Calendar c = Calendar.getInstance();
+        // Menggunakan tanggal 1 sebagai default tanggal picker
         new DatePickerDialog(requireContext(), (view, year, month, day) -> {
             currentMonth = year + "-" + String.format("%02d", month + 1);
             btnPickMonth.setText(currentMonth);
@@ -123,9 +134,11 @@ public class ReportsFragment extends Fragment {
     }
 
     private void loadReport() {
+        // Prediksi Pengeluaran
         double prediction = dbHelper.predictMonthlyExpense();
         textPrediction.setText("Prediksi Pengeluaran: Rp " + String.format("%,.0f", prediction));
 
+        // Setup Data Chart
         ArrayList<PieEntry> entries = new ArrayList<>();
         android.database.Cursor cursor;
 
@@ -137,15 +150,16 @@ public class ReportsFragment extends Fragment {
             pieChart.setCenterText("Pemasukan\n" + currentMonth);
         }
 
-        if (cursor.moveToFirst()) {
+        if (cursor != null && cursor.moveToFirst()) {
             do {
                 String cat = cursor.getString(0);
                 float amount = cursor.getFloat(1);
                 entries.add(new PieEntry(amount, cat));
             } while (cursor.moveToNext());
+            cursor.close();
         }
-        cursor.close();
 
+        // Cek Kosong
         if (entries.isEmpty()) {
             pieChart.setVisibility(View.GONE);
             layoutEmptyReport.setVisibility(View.VISIBLE);
@@ -155,13 +169,27 @@ public class ReportsFragment extends Fragment {
         pieChart.setVisibility(View.VISIBLE);
         layoutEmptyReport.setVisibility(View.GONE);
 
+        // Styling Chart
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(ColorTemplate.PASTEL_COLORS);
         dataSet.setValueTextSize(12f);
+        dataSet.setValueTextColor(Color.WHITE); // Agar kontras
+
         PieData data = new PieData(dataSet);
         pieChart.setData(data);
         pieChart.getDescription().setEnabled(false);
+        pieChart.setCenterTextSize(14f);
+        pieChart.setHoleRadius(45f);
+        pieChart.setTransparentCircleRadius(50f);
+
+        // ANIMASI: Durasi 1000ms (Cukup cepat & Smooth)
         pieChart.animateY(1000);
         pieChart.invalidate();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadReport();
     }
 }

@@ -1,12 +1,15 @@
 package com.example.sadardiri.fragment;
 
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.LayoutAnimationController;
 import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
@@ -32,10 +35,7 @@ public class HabitsFragment extends Fragment {
     private DatabaseHelper dbHelper;
     private RecyclerView recyclerHabits;
     private TextView textHabitScore;
-
-    // Tambahkan variabel untuk View Empty State
     private View layoutEmptyHabits;
-
     private FloatingActionButton btnAddHabit;
     private HabitAdapter habitAdapter;
     private List<Habit> habitList;
@@ -48,8 +48,10 @@ public class HabitsFragment extends Fragment {
         recyclerHabits = view.findViewById(R.id.recyclerHabits);
         textHabitScore = view.findViewById(R.id.textHabitScore);
         btnAddHabit = view.findViewById(R.id.btnAddHabit);
-        // Inisialisasi View Empty State
         layoutEmptyHabits = view.findViewById(R.id.layoutEmptyHabits);
+
+        Animation scaleUp = AnimationUtils.loadAnimation(requireContext(), R.anim.item_fall_down);
+        btnAddHabit.startAnimation(scaleUp);
 
         recyclerHabits.setLayoutManager(new LinearLayoutManager(requireContext()));
         habitList = new ArrayList<>();
@@ -57,10 +59,22 @@ public class HabitsFragment extends Fragment {
         recyclerHabits.setAdapter(habitAdapter);
 
         btnAddHabit.setOnClickListener(v -> startActivity(new Intent(requireContext(), AddHabitActivity.class)));
+
         loadHabits();
         updateHabitScore();
 
         return view;
+    }
+
+    // --- PERBAIKAN ANIMASI ---
+    private void runLayoutAnimation(RecyclerView recyclerView) {
+        if (recyclerView == null || recyclerView.getAdapter() == null) return;
+
+        final Context context = recyclerView.getContext();
+        final LayoutAnimationController controller =
+                AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_fall_down);
+        recyclerView.setLayoutAnimation(controller);
+        recyclerView.scheduleLayoutAnimation();
     }
 
     private void loadHabits() {
@@ -78,7 +92,6 @@ public class HabitsFragment extends Fragment {
         }
         cursor.close();
 
-        // LOGIKA TAMPILAN KOSONG
         if (habitList.isEmpty()) {
             layoutEmptyHabits.setVisibility(View.VISIBLE);
             recyclerHabits.setVisibility(View.GONE);
@@ -88,6 +101,7 @@ public class HabitsFragment extends Fragment {
         }
 
         habitAdapter.notifyDataSetChanged();
+        runLayoutAnimation(recyclerHabits);
     }
 
     private void updateHabitScore() {

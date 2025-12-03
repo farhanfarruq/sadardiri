@@ -15,7 +15,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_header_rounded"
-            android:padding="24dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingTop="56dp"
+            android:paddingBottom="48dp"
             android:orientation="vertical">
 
             <TextView
@@ -58,21 +61,18 @@
                     app:cardBackgroundColor="@color/card_background"
                     app:strokeColor="@color/button_income"
                     app:strokeWidth="1dp">
-
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="16dp"
                         android:gravity="center">
-
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pemasukan"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"/>
-
                         <TextView
                             android:id="@+id/textIncome"
                             android:layout_width="wrap_content"
@@ -95,21 +95,18 @@
                     app:cardBackgroundColor="@color/card_background"
                     app:strokeColor="@color/button_expense"
                     app:strokeWidth="1dp">
-
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="16dp"
                         android:gravity="center">
-
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pengeluaran"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"/>
-
                         <TextView
                             android:id="@+id/textExpense"
                             android:layout_width="wrap_content"
@@ -132,18 +129,15 @@
                 app:strokeColor="@color/surface_variant"
                 app:strokeWidth="1dp"
                 android:layout_marginBottom="24dp">
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="16dp">
-
                     <com.github.mikephil.charting.charts.PieChart
                         android:id="@+id/pieChart"
                         android:layout_width="match_parent"
                         android:layout_height="200dp" />
-
                     <LinearLayout
                         android:id="@+id/layoutEmptyChart"
                         android:layout_width="match_parent"
@@ -193,14 +187,12 @@
                 app:strokeColor="@color/surface_variant"
                 app:strokeWidth="1dp"
                 android:layout_marginBottom="24dp">
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:padding="16dp">
-
                     <ImageView
                         android:layout_width="48dp"
                         android:layout_height="48dp"
@@ -208,21 +200,18 @@
                         app:tint="@color/primary"
                         android:background="@drawable/spinner_background"
                         android:padding="10dp"/>
-
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="16dp"
                         android:orientation="vertical">
-
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Target Tabungan"
                             android:textSize="14sp"
                             android:textColor="@color/text_secondary"/>
-
                         <TextView
                             android:id="@+id/textSavingsSummary"
                             android:layout_width="wrap_content"
@@ -253,14 +242,12 @@
                 app:strokeColor="@color/surface_variant"
                 app:strokeWidth="1dp"
                 android:layout_marginBottom="16dp">
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:padding="16dp">
-
                     <ImageView
                         android:layout_width="48dp"
                         android:layout_height="48dp"
@@ -268,21 +255,18 @@
                         app:tint="@color/primary"
                         android:background="@drawable/spinner_background"
                         android:padding="10dp"/>
-
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="16dp"
                         android:orientation="vertical">
-
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Skor Harian"
                             android:textSize="14sp"
                             android:textColor="@color/text_secondary"/>
-
                         <TextView
                             android:id="@+id/textHabitScore"
                             android:layout_width="wrap_content"
@@ -301,7 +285,6 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 android:paddingBottom="100dp"/>
-
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

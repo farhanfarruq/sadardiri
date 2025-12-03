@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnimationUtils;
+import android.view.animation.LayoutAnimationController;
 import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
@@ -37,7 +39,7 @@ public class DashboardFragment extends Fragment {
 
     private DatabaseHelper dbHelper;
     private PieChart pieChart;
-    private View layoutEmptyChart; // View Empty State
+    private View layoutEmptyChart;
     private TextView textIncome, textExpense, textHabitScore;
     private RecyclerView recyclerTransactions, recyclerHabits;
     private TextView textSavingsSummary;
@@ -53,8 +55,7 @@ public class DashboardFragment extends Fragment {
         dbHelper = new DatabaseHelper(requireContext());
 
         pieChart = view.findViewById(R.id.pieChart);
-        layoutEmptyChart = view.findViewById(R.id.layoutEmptyChart); // Init View
-
+        layoutEmptyChart = view.findViewById(R.id.layoutEmptyChart);
         textIncome = view.findViewById(R.id.textIncome);
         textExpense = view.findViewById(R.id.textExpense);
         textHabitScore = view.findViewById(R.id.textHabitScore);
@@ -98,6 +99,18 @@ public class DashboardFragment extends Fragment {
         return view;
     }
 
+    // --- PERBAIKAN ANIMASI (No Blink, No Delay) ---
+    private void runLayoutAnimation(RecyclerView recyclerView) {
+        if (recyclerView == null || recyclerView.getAdapter() == null) return;
+
+        final Context context = recyclerView.getContext();
+        final LayoutAnimationController controller =
+                AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_fall_down);
+
+        recyclerView.setLayoutAnimation(controller);
+        recyclerView.scheduleLayoutAnimation(); // Jalankan langsung
+    }
+
     private void loadSummary() {
         double income = dbHelper.getTotalIncomeThisMonth();
         double expense = dbHelper.getTotalExpenseThisMonth();
@@ -114,18 +127,16 @@ public class DashboardFragment extends Fragment {
         if (expense > 0) entries.add(new PieEntry((float) expense, "Pengeluaran"));
 
         if (entries.isEmpty()) {
-            // Tampilkan Empty State
             pieChart.setVisibility(View.GONE);
             layoutEmptyChart.setVisibility(View.VISIBLE);
             return;
         }
 
-        // Tampilkan Chart
         pieChart.setVisibility(View.VISIBLE);
         layoutEmptyChart.setVisibility(View.GONE);
 
         PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(Color.parseColor("#2E7D32"), Color.parseColor("#BA1A1A")); // Gunakan warna tema baru
+        dataSet.setColors(Color.parseColor("#00C853"), Color.parseColor("#FF1744"));
         dataSet.setValueTextColor(Color.WHITE);
         dataSet.setValueTextSize(12f);
 
@@ -160,7 +171,8 @@ public class DashboardFragment extends Fragment {
         }
         if (cursor != null) cursor.close();
         if (transactionAdapter != null) {
-            transactionAdapter.setData(list);
+            transactionAdapter.setData(list); // Ini akan trigger notifyDataSetChanged di adapter
+            runLayoutAnimation(recyclerTransactions);
         }
     }
 
@@ -178,6 +190,7 @@ public class DashboardFragment extends Fragment {
         }
         cursor.close();
         habitAdapter.notifyDataSetChanged();
+        runLayoutAnimation(recyclerHabits);
         updateHabitScore();
     }
 
@@ -203,6 +216,16 @@ public class DashboardFragment extends Fragment {
                 "Tabungan: Rp " + String.format("%,.0f", totalCurrent) +
                         " / Rp " + String.format("%,.0f", totalTarget)
         );
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadSummary();
+        loadChart();
+        loadRecentTransactions();
+        loadHabits();
+        updateSavingsSummary();
     }
 
     @Override

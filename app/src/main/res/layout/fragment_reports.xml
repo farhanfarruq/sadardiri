@@ -10,7 +10,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_header_rounded"
-        android:padding="24dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="56dp"
+        android:paddingBottom="48dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -33,7 +36,8 @@
                 android:layout_height="wrap_content"
                 android:text="Analisis pengeluaran dan pemasukan"
                 android:textSize="14sp"
-                android:textColor="#E0E0E0"/>
+                android:textColor="#E0E0E0"
+                android:layout_marginTop="4dp"/>
         </LinearLayout>
 
         <ImageView
@@ -44,7 +48,8 @@
             app:tint="@color/on_primary"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
-            android:focusable="true"/>
+            android:focusable="true"
+            android:contentDescription="Pengaturan"/>
     </LinearLayout>
 
     <LinearLayout
@@ -80,7 +85,8 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:text="Pengeluaran"
-                android:textColor="@color/button_expense"/>
+                android:textColor="@color/button_expense"
+                app:strokeColor="@color/surface_variant"/>
 
             <Button
                 android:id="@+id/btnChartIncome"
@@ -89,7 +95,8 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:text="Pemasukan"
-                android:textColor="@color/button_income"/>
+                android:textColor="@color/button_income"
+                app:strokeColor="@color/surface_variant"/>
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <com.github.mikephil.charting.charts.PieChart
