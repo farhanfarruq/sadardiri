@@ -2,7 +2,6 @@ package com.example.sadardiri.adapter;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.database.Cursor;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,89 +9,83 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.sadardiri.R;
-import com.example.sadardiri.database.DatabaseHelper;
+import com.example.sadardiri.data.FirestoreCategoryRepository;
+import com.example.sadardiri.model.Category;
 
-import java.util.ArrayList;
+import java.util.List;
 
-public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHolder> {
+public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder> {
 
-    private ArrayList<String> categoryNames;
-    private ArrayList<Integer> categoryIds; // Butuh ID untuk menghapus
-    private DatabaseHelper dbHelper;
-    private Context context;
+    private final List<Category> categories;
+    private final FirestoreCategoryRepository categoryRepo = new FirestoreCategoryRepository();
 
-    public CategoryAdapter(Context context, DatabaseHelper dbHelper) {
-        this.context = context;
-        this.dbHelper = dbHelper;
-        this.categoryNames = new ArrayList<>();
-        this.categoryIds = new ArrayList<>();
+    public CategoryAdapter(List<Category> categories) {
+        this.categories = categories;
     }
 
-    public void updateData(Cursor cursor) {
-        categoryNames.clear();
-        categoryIds.clear();
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                int id = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
-                String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
-                categoryNames.add(name);
-                categoryIds.add(id);
-            } while (cursor.moveToNext());
-            cursor.close();
-        }
+    public void setData(List<Category> newList) {
+        categories.clear();
+        categories.addAll(newList);
         notifyDataSetChanged();
     }
 
+    @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        // GANTI layout ke item_category
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
-        return new ViewHolder(view);
+    public CategoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_category, parent, false);
+        return new CategoryViewHolder(v);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        String name = categoryNames.get(position);
-        int id = categoryIds.get(position);
+    public void onBindViewHolder(@NonNull CategoryViewHolder holder, int position) {
+        Category c = categories.get(position);
 
-        holder.textName.setText(name);
+        holder.textName.setText(c.getName());
 
-        // LOGIKA HAPUS KATEGORI
-        holder.btnDelete.setOnClickListener(v -> {
-            new AlertDialog.Builder(context)
-                    .setTitle("Hapus Kategori?")
-                    .setMessage("Kategori '" + name + "' akan dihapus permanen.")
-                    .setPositiveButton("Hapus", (dialog, which) -> {
-                        dbHelper.deleteCategory(id);
-
-                        // Refresh data manual dari adapter
-                        categoryNames.remove(position);
-                        categoryIds.remove(position);
-                        notifyItemRemoved(position);
-                        notifyItemRangeChanged(position, categoryNames.size());
-
-                        Toast.makeText(context, "Kategori dihapus", Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("Batal", null)
-                    .show();
-        });
+        holder.btnDelete.setOnClickListener(v -> deleteCategory(holder.itemView.getContext(), c, position));
     }
 
     @Override
     public int getItemCount() {
-        return categoryNames.size();
+        return categories.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView textName;
-        ImageView btnDelete;
+    private void deleteCategory(Context context, Category c, int position) {
+        if (c.getId() == null) return;
 
-        public ViewHolder(View itemView) {
+        new AlertDialog.Builder(context)
+                .setTitle("Hapus Kategori")
+                .setMessage("Yakin ingin menghapus \"" + c.getName() + "\"?")
+                .setPositiveButton("Hapus", (dialog, which) -> {
+                    categoryRepo.delete(c.getId())
+                            .addOnSuccessListener(unused -> {
+                                categories.remove(position);
+                                notifyItemRemoved(position);
+                                Toast.makeText(context, "Kategori dihapus", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e ->
+                                    Toast.makeText(context,
+                                            "Gagal menghapus: " + e.getMessage(),
+                                            Toast.LENGTH_SHORT).show()
+                            );
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    static class CategoryViewHolder extends RecyclerView.ViewHolder {
+        TextView textName;
+        ImageView btnDelete; // Menggunakan ImageView sesuai XML
+
+        CategoryViewHolder(@NonNull View itemView) {
             super(itemView);
             textName = itemView.findViewById(R.id.textCategoryName);
+            // btnEdit dihapus
             btnDelete = itemView.findViewById(R.id.btnDeleteCategory);
         }
     }

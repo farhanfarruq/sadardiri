@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,103 +11,106 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
+import android.widget.Button;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.sadardiri.R;
-import com.example.sadardiri.model.SavingsTarget;
 import com.example.sadardiri.adapter.SavingsAdapter;
-import com.example.sadardiri.database.DatabaseHelper;
+import com.example.sadardiri.data.FirestoreSavingsRepository;
+import com.example.sadardiri.model.SavingsTarget;
 import com.example.sadardiri.ui.AddSavingsTargetActivity;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SavingsFragment extends Fragment {
 
-    private DatabaseHelper dbHelper;
     private RecyclerView recyclerSavings;
-    private View textEmpty;
-    private List<SavingsTarget> savingsList;
-    private SavingsAdapter adapter;
-    private BroadcastReceiver refreshReceiver;
-    private FloatingActionButton btnAddSavings;
+    private View layoutEmptySavings;
+    private View btnAddSaving; // FloatingActionButton di XML, bisa pakai View/FloatingActionButton
 
+    // textSummarySavings tidak ada di XML, logika dihapus
+
+    private SavingsAdapter savingsAdapter;
+    private final List<SavingsTarget> savingsList = new ArrayList<>();
+    private FirestoreSavingsRepository savingsRepo;
+
+    private BroadcastReceiver refreshReceiver;
+
+    @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+
         View view = inflater.inflate(R.layout.fragment_savings, container, false);
 
-        dbHelper = new DatabaseHelper(requireContext());
         recyclerSavings = view.findViewById(R.id.recyclerSavings);
-        textEmpty = view.findViewById(R.id.textEmptySavings);
-        btnAddSavings = view.findViewById(R.id.btnAddSavings);
+        // ID di XML adalah textEmptySavings (LinearLayout)
+        layoutEmptySavings = view.findViewById(R.id.textEmptySavings);
+        // ID di XML adalah btnAddSavings
+        btnAddSaving = view.findViewById(R.id.btnAddSavings);
 
-        Animation scaleUp = AnimationUtils.loadAnimation(requireContext(), R.anim.item_fall_down);
-        btnAddSavings.startAnimation(scaleUp);
-
-        btnAddSavings.setOnClickListener(v -> startActivity(new Intent(requireContext(), AddSavingsTargetActivity.class)));
+        savingsRepo = new FirestoreSavingsRepository();
 
         recyclerSavings.setLayoutManager(new LinearLayoutManager(requireContext()));
-        savingsList = new ArrayList<>();
-        adapter = new SavingsAdapter(savingsList);
-        recyclerSavings.setAdapter(adapter);
+        savingsAdapter = new SavingsAdapter(savingsList);
+        recyclerSavings.setAdapter(savingsAdapter);
 
-        loadSavings();
+        Animation fallDown = AnimationUtils.loadAnimation(requireContext(), R.anim.item_fall_down);
+        LayoutAnimationController controller = new LayoutAnimationController(fallDown);
+        recyclerSavings.setLayoutAnimation(controller);
+
+        btnAddSaving.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), AddSavingsTargetActivity.class))
+        );
 
         refreshReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                loadSavings();
+                if ("REFRESH_SAVINGS".equals(intent.getAction())) {
+                    loadSavings();
+                }
             }
         };
-        androidx.core.content.ContextCompat.registerReceiver(
-                requireActivity(),
-                refreshReceiver,
-                new IntentFilter("REFRESH_SAVINGS"),
-                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
-        );
+        IntentFilter filter = new IntentFilter("REFRESH_SAVINGS");
+        requireActivity().registerReceiver(refreshReceiver, filter);
+
+        loadSavings();
 
         return view;
     }
 
-    // --- PERBAIKAN ANIMASI ---
-    private void runLayoutAnimation(RecyclerView recyclerView) {
-        if (recyclerView == null || recyclerView.getAdapter() == null) return;
-
-        final Context context = recyclerView.getContext();
-        final LayoutAnimationController controller =
-                AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_fall_down);
-        recyclerView.setLayoutAnimation(controller);
-        recyclerView.scheduleLayoutAnimation();
-    }
-
     private void loadSavings() {
-        savingsList.clear();
-        Cursor cursor = dbHelper.getAllSavingsTargets();
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                int id = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
-                String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
-                double target = cursor.getDouble(cursor.getColumnIndexOrThrow("target_amount"));
-                double current = cursor.getDouble(cursor.getColumnIndexOrThrow("current_amount"));
-                savingsList.add(new SavingsTarget(id, name, target, current));
-            } while (cursor.moveToNext());
-            cursor.close();
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            layoutEmptySavings.setVisibility(View.VISIBLE);
+            return;
         }
 
-        if (savingsList.isEmpty()) {
-            textEmpty.setVisibility(View.VISIBLE);
-            recyclerSavings.setVisibility(View.GONE);
-        } else {
-            textEmpty.setVisibility(View.GONE);
-            recyclerSavings.setVisibility(View.VISIBLE);
-        }
+        savingsRepo.getAll()
+                .addOnSuccessListener(list -> {
+                    savingsList.clear();
+                    savingsList.addAll(list);
+                    savingsAdapter.notifyDataSetChanged();
 
-        adapter.notifyDataSetChanged();
-        runLayoutAnimation(recyclerSavings);
+                    if (savingsList.isEmpty()) {
+                        layoutEmptySavings.setVisibility(View.VISIBLE);
+                    } else {
+                        layoutEmptySavings.setVisibility(View.GONE);
+                    }
+
+                    recyclerSavings.scheduleLayoutAnimation();
+                })
+                .addOnFailureListener(e -> {
+                    layoutEmptySavings.setVisibility(View.VISIBLE);
+                });
     }
 
     @Override
@@ -120,10 +122,8 @@ public class SavingsFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (refreshReceiver != null) {
-            try {
-                requireActivity().unregisterReceiver(refreshReceiver);
-            } catch (Exception ignored) {}
-        }
+        try {
+            requireActivity().unregisterReceiver(refreshReceiver);
+        } catch (Exception ignored) {}
     }
 }

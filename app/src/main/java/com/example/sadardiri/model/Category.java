@@ -2,22 +2,18 @@ package com.example.sadardiri.model;
 
 import com.google.firebase.firestore.DocumentId;
 
-public class Habit {
+public class Category {
     @DocumentId
     private String id;
-    private String userId; // Penanda pemilik data
+    private String userId; // Penanda pemilik
     private String name;
-    private boolean done;
 
-    public Habit() {
-        // Constructor kosong untuk Firestore
-    }
+    public Category() {}
 
-    public Habit(String id, String userId, String name, boolean done) {
+    public Category(String id, String userId, String name) {
         this.id = id;
         this.userId = userId;
         this.name = name;
-        this.done = done;
     }
 
     public String getId() { return id; }
@@ -28,7 +24,4 @@ public class Habit {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-
-    public boolean isDone() { return done; }
-    public void setDone(boolean done) { this.done = done; }
 }

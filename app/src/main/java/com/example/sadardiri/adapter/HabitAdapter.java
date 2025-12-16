@@ -1,109 +1,119 @@
 package com.example.sadardiri.adapter;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.sadardiri.model.Habit;
 import com.example.sadardiri.R;
-import com.example.sadardiri.database.DatabaseHelper;
-import com.google.android.material.textfield.TextInputEditText;
+import com.example.sadardiri.data.FirestoreHabitRepository;
+import com.example.sadardiri.model.Habit;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 
 public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHolder> {
 
-    private List<Habit> habits;
-    private DatabaseHelper dbHelper;
-    private String today;
+    private final List<Habit> habits;
+    private final FirestoreHabitRepository habitRepo = new FirestoreHabitRepository();
 
-    public HabitAdapter(List<Habit> habits, DatabaseHelper dbHelper) {
+    public HabitAdapter(List<Habit> habits) {
         this.habits = habits;
-        this.dbHelper = dbHelper;
-        this.today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().getTime());
+    }
+
+    public void setData(List<Habit> newHabits) {
+        habits.clear();
+        habits.addAll(newHabits);
+        notifyDataSetChanged();
+    }
+
+    @NonNull
+    @Override
+    public HabitViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_habit, parent, false);
+        return new HabitViewHolder(v);
     }
 
     @Override
-    public HabitViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_habit, parent, false);
-        return new HabitViewHolder(view);
-    }
-
-    @Override
-    public void onBindViewHolder(HabitViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull HabitViewHolder holder, int position) {
         Habit habit = habits.get(position);
+
         holder.textHabitName.setText(habit.getName());
-        holder.checkBox.setOnCheckedChangeListener(null);
-        boolean isDone = dbHelper.isHabitDoneToday(habit.getId(), today);
-        holder.checkBox.setChecked(isDone);
+        holder.checkHabit.setOnCheckedChangeListener(null);
+        holder.checkHabit.setChecked(habit.isDone());
 
-        holder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) dbHelper.logHabit(habit.getId(), today);
-            else dbHelper.removeHabitLog(habit.getId(), today);
-
-            Intent intent = new Intent("REFRESH_HABITS");
-            holder.itemView.getContext().sendBroadcast(intent);
+        holder.checkHabit.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (habit.getId() == null) return;
+            habitRepo.setDone(habit.getId(), isChecked)
+                    .addOnSuccessListener(unused -> {
+                        habit.setDone(isChecked);
+                        Intent intent = new Intent("REFRESH_HABITS");
+                        holder.itemView.getContext().sendBroadcast(intent);
+                        holder.itemView.getContext().sendBroadcast(new Intent("REFRESH_DASHBOARD"));
+                    });
         });
 
+        // FITUR HOLD
         holder.itemView.setOnLongClickListener(v -> {
-            String[] options = {"Edit Kebiasaan", "Hapus Kebiasaan"};
-            new AlertDialog.Builder(holder.itemView.getContext())
-                    .setItems(options, (dialog, which) -> {
-                        if (which == 0) showEditDialog(holder.itemView.getContext(), habit);
-                        else showDeleteConfirm(holder.itemView.getContext(), habit);
-                    })
-                    .show();
+            showEditDialog(holder.itemView.getContext(), habit);
             return true;
         });
     }
 
-    private void showEditDialog(android.content.Context context, Habit habit) {
+    private void showEditDialog(Context context, Habit h) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_edit_habit, null);
-        TextInputEditText editName = view.findViewById(R.id.editHabitName);
-        editName.setText(habit.getName());
+        EditText editName = view.findViewById(R.id.editHabitName);
+        editName.setText(h.getName());
 
-        builder.setView(view);
-        builder.setPositiveButton("Simpan", (d, w) -> {
-            String name = editName.getText().toString();
-            if (!name.isEmpty()) {
-                dbHelper.updateHabitName(habit.getId(), name);
-                context.sendBroadcast(new Intent("REFRESH_HABITS"));
-            }
-        });
-        builder.setNegativeButton("Batal", null);
-        builder.show();
-    }
-
-    private void showDeleteConfirm(android.content.Context context, Habit habit) {
-        new AlertDialog.Builder(context)
-                .setMessage("Hapus kebiasaan ini?")
-                .setPositiveButton("Hapus", (d, w) -> {
-                    dbHelper.deleteHabit(habit.getId());
-                    context.sendBroadcast(new Intent("REFRESH_HABITS"));
+        builder.setView(view)
+                .setTitle("Edit Kebiasaan")
+                .setPositiveButton("Simpan", (dialog, which) -> {
+                    String newName = editName.getText().toString().trim();
+                    if (!newName.isEmpty()) {
+                        habitRepo.updateName(h.getId(), newName).addOnSuccessListener(u -> {
+                            Toast.makeText(context, "Diperbarui", Toast.LENGTH_SHORT).show();
+                            context.sendBroadcast(new Intent("REFRESH_HABITS"));
+                            context.sendBroadcast(new Intent("REFRESH_DASHBOARD"));
+                        });
+                    }
                 })
-                .setNegativeButton("Batal", null)
+                .setNeutralButton("Hapus", (dialog, which) -> {
+                    new AlertDialog.Builder(context)
+                            .setMessage("Hapus kebiasaan ini?")
+                            .setPositiveButton("Ya", (d, w) -> {
+                                habitRepo.delete(h.getId()).addOnSuccessListener(u -> {
+                                    Toast.makeText(context, "Terhapus", Toast.LENGTH_SHORT).show();
+                                    context.sendBroadcast(new Intent("REFRESH_HABITS"));
+                                    context.sendBroadcast(new Intent("REFRESH_DASHBOARD"));
+                                });
+                            }).show();
+                })
                 .show();
     }
 
     @Override
-    public int getItemCount() { return habits.size(); }
+    public int getItemCount() {
+        return habits.size();
+    }
 
     static class HabitViewHolder extends RecyclerView.ViewHolder {
         TextView textHabitName;
-        CheckBox checkBox;
-        public HabitViewHolder(View itemView) {
+        CheckBox checkHabit;
+
+        HabitViewHolder(@NonNull View itemView) {
             super(itemView);
             textHabitName = itemView.findViewById(R.id.textHabitName);
-            checkBox = itemView.findViewById(R.id.checkBoxHabit);
+            checkHabit = itemView.findViewById(R.id.checkBoxHabit);
         }
     }
 }

@@ -5,105 +5,87 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.sadardiri.database.DatabaseHelper;
 import com.example.sadardiri.R;
+import com.example.sadardiri.data.FirestoreSavingsRepository;
+import com.example.sadardiri.model.SavingsTarget;
 import com.google.android.material.textfield.TextInputEditText;
-import java.text.SimpleDateFormat;
+
 import java.util.Calendar;
 import java.util.Locale;
 
 public class AddSavingsTargetActivity extends AppCompatActivity {
 
-    private DatabaseHelper dbHelper;
-    private TextInputEditText editName, editTarget, editCurrent; // Ditambah editCurrent
-    private Button btnPickDate, btnSave;
-    private String selectedDate;
+    private TextInputEditText editSavingName, editTargetAmount, editCurrentAmount;
+    private Button btnSaveSaving, btnPickTargetDate;
+    private FirestoreSavingsRepository savingsRepo;
+    private String selectedDate = ""; // Variabel untuk menyimpan tanggal
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_savings_target);
 
-        dbHelper = new DatabaseHelper(this);
+        editSavingName = findViewById(R.id.editTargetName);
+        editTargetAmount = findViewById(R.id.editTargetAmount);
+        editCurrentAmount = findViewById(R.id.editCurrentAmount);
+        btnSaveSaving = findViewById(R.id.btnSaveTarget);
+        btnPickTargetDate = findViewById(R.id.btnPickTargetDate); // Inisialisasi tombol tanggal
 
-        // Inisialisasi View
-        editName = findViewById(R.id.editTargetName);
-        editTarget = findViewById(R.id.editTargetAmount);
-        editCurrent = findViewById(R.id.editCurrentAmount); // Inisialisasi Jumlah Saat Ini
-        btnPickDate = findViewById(R.id.btnPickTargetDate); // ID diperbaiki (sebelumnya R.id.btnPickDate)
-        btnSave = findViewById(R.id.btnSaveTarget);
+        savingsRepo = new FirestoreSavingsRepository();
 
-        // Default tanggal: hari ini
-        Calendar calendar = Calendar.getInstance();
-        selectedDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.getTime());
-        btnPickDate.setText(selectedDate);
+        // Set default tanggal (Hari ini)
+        Calendar c = Calendar.getInstance();
+        selectedDate = String.format(Locale.getDefault(), "%04d-%02d-%02d",
+                c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH));
+        btnPickTargetDate.setText("Target: " + selectedDate);
 
-        btnPickDate.setOnClickListener(v -> showDatePicker());
-        btnSave.setOnClickListener(v -> saveTarget());
+        // Listener tombol tanggal
+        btnPickTargetDate.setOnClickListener(v -> {
+            new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+                selectedDate = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth);
+                btnPickTargetDate.setText("Target: " + selectedDate);
+            }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        btnSaveSaving.setOnClickListener(v -> saveSavingTarget());
     }
 
-    private void showDatePicker() {
-        Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
+    private void saveSavingTarget() {
+        String name = editSavingName.getText() != null ? editSavingName.getText().toString().trim() : "";
+        String targetStr = editTargetAmount.getText() != null ? editTargetAmount.getText().toString().trim() : "";
+        String currentStr = editCurrentAmount.getText() != null ? editCurrentAmount.getText().toString().trim() : "";
 
-        new DatePickerDialog(this, (view, year1, month1, dayOfMonth) -> {
-            Calendar selected = Calendar.getInstance();
-            selected.set(year1, month1, dayOfMonth);
-            selectedDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selected.getTime());
-            btnPickDate.setText(selectedDate);
-        }, year, month, day).show();
-    }
-
-    private void saveTarget() {
-        String name = editName.getText().toString().trim();
-        String targetAmountStr = editTarget.getText().toString().trim();
-        String currentAmountStr = editCurrent.getText().toString().trim(); // Ambil Jumlah Saat Ini
-
-        if (name.isEmpty() || targetAmountStr.isEmpty()) {
-            Toast.makeText(this, "Isi semua field yang wajib (Nama Target dan Jumlah Target)!", Toast.LENGTH_SHORT).show();
+        if (name.isEmpty() || targetStr.isEmpty()) {
+            Toast.makeText(this, "Nama dan Target harus diisi", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        double targetAmount;
-        double currentAmount = 0.0; // Default 0.0 jika opsional
-
-        // 1. Validasi Target Amount
+        double target, current = 0;
         try {
-            targetAmount = Double.parseDouble(targetAmountStr.replace(",", ""));
-            if (targetAmount <= 0) throw new Exception();
-        } catch (Exception e) {
-            Toast.makeText(this, "Masukkan jumlah target yang valid (> 0)!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // 2. Validasi Current Amount (Opsional)
-        if (!currentAmountStr.isEmpty()) {
-            try {
-                currentAmount = Double.parseDouble(currentAmountStr.replace(",", ""));
-                if (currentAmount < 0) throw new Exception();
-            } catch (Exception e) {
-                Toast.makeText(this, "Masukkan jumlah saat ini yang valid!", Toast.LENGTH_SHORT).show();
-                return;
+            target = Double.parseDouble(targetStr);
+            if (!currentStr.isEmpty()) {
+                current = Double.parseDouble(currentStr);
             }
-        }
-
-        // 3. Validasi Current Amount vs Target Amount
-        if (currentAmount > targetAmount) {
-            Toast.makeText(this, "Jumlah saat ini tidak boleh melebihi jumlah target!", Toast.LENGTH_SHORT).show();
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Angka tidak valid", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Simpan ke database (currentAmount sudah terisi atau 0.0)
-        dbHelper.addSavingsTarget(name, targetAmount, currentAmount, selectedDate);
+        // Simpan dengan tanggal
+        SavingsTarget s = new SavingsTarget(null, null, name, target, current, selectedDate);
 
-        Intent intent = new Intent("REFRESH_SAVINGS");
-        sendBroadcast(intent);
-
-        Toast.makeText(this, "Target disimpan!", Toast.LENGTH_SHORT).show();
-        finish();
+        savingsRepo.add(s)
+                .addOnSuccessListener(id -> {
+                    Toast.makeText(this, "Target tersimpan", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent("REFRESH_SAVINGS");
+                    sendBroadcast(intent);
+                    finish();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Gagal: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
     }
 }

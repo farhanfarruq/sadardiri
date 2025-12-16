@@ -3,6 +3,7 @@ package com.example.sadardiri.adapter;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,110 +12,115 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.sadardiri.R;
-import com.example.sadardiri.database.DatabaseHelper;
+import com.example.sadardiri.data.FirestoreSavingsRepository;
 import com.example.sadardiri.model.SavingsTarget;
-import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 
-public class SavingsAdapter extends RecyclerView.Adapter<SavingsAdapter.ViewHolder> {
+public class SavingsAdapter extends RecyclerView.Adapter<SavingsAdapter.SavingsViewHolder> {
 
-    private List<SavingsTarget> savingsList;
-    private Context context;
-    private DatabaseHelper dbHelper;
+    private final List<SavingsTarget> savingsList;
+    private final FirestoreSavingsRepository savingsRepo = new FirestoreSavingsRepository();
 
     public SavingsAdapter(List<SavingsTarget> savingsList) {
         this.savingsList = savingsList;
     }
 
+    public void setData(List<SavingsTarget> newList) {
+        savingsList.clear();
+        savingsList.addAll(newList);
+        notifyDataSetChanged();
+    }
+
+    @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        context = parent.getContext();
-        dbHelper = new DatabaseHelper(context);
-        View view = LayoutInflater.from(context).inflate(R.layout.item_savings, parent, false);
-        return new ViewHolder(view);
+    public SavingsViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_savings, parent, false);
+        return new SavingsViewHolder(v);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        SavingsTarget target = savingsList.get(position);
-        holder.textName.setText(target.getName());
-        holder.textProgress.setText(target.getProgressText());
-        holder.progressBar.setProgress(target.getProgress());
+    public void onBindViewHolder(@NonNull SavingsViewHolder holder, int position) {
+        SavingsTarget s = savingsList.get(position);
 
-        holder.btnAddAmount.setOnClickListener(v -> showAddDepositDialog(target));
+        holder.textName.setText(s.getName());
+        holder.textProgress.setText(s.getProgressText());
+        holder.progressBar.setMax(100);
+        holder.progressBar.setProgress(s.getProgress());
 
+        // Tambah Tabungan
+        holder.btnAddAmount.setOnClickListener(v -> showAddAmountDialog(holder.itemView.getContext(), s));
+
+        // FITUR HOLD (Edit Target)
         holder.itemView.setOnLongClickListener(v -> {
-            String[] options = {"Edit Target", "Hapus Target"};
-            new AlertDialog.Builder(context)
-                    .setTitle("Opsi: " + target.getName())
-                    .setItems(options, (dialog, which) -> {
-                        if (which == 0) showEditDialog(target);
-                        else showDeleteConfirm(target);
-                    })
-                    .show();
+            showEditDialog(holder.itemView.getContext(), s);
             return true;
         });
     }
 
-    private void showAddDepositDialog(SavingsTarget target) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("Nabung: " + target.getName());
-        final EditText input = new EditText(context);
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        input.setHint("Masukkan jumlah (Rp)");
-        builder.setView(input);
-        builder.setPositiveButton("Simpan", (dialog, which) -> {
-            String amountStr = input.getText().toString();
-            if (!amountStr.isEmpty()) {
-                double add = Double.parseDouble(amountStr);
-                dbHelper.updateSavingsAmount(target.getId(), target.getCurrentAmount() + add);
-                refreshData();
-            }
-        });
-        builder.setNegativeButton("Batal", null);
-        builder.show();
-    }
+    private void showAddAmountDialog(Context context, SavingsTarget s) {
+        EditText input = new EditText(context);
+        input.setHint("Nominal (Rp)");
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
 
-    private void showEditDialog(SavingsTarget target) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        View view = LayoutInflater.from(context).inflate(R.layout.dialog_edit_savings, null);
-        TextInputEditText editName = view.findViewById(R.id.editName);
-        TextInputEditText editTarget = view.findViewById(R.id.editTargetAmount);
-
-        editName.setText(target.getName());
-        editTarget.setText(String.valueOf(target.getTargetAmount()).replace(".0", ""));
-
-        builder.setView(view);
-        builder.setPositiveButton("Update", (d, w) -> {
-            String name = editName.getText().toString();
-            String amountStr = editTarget.getText().toString();
-            if (!name.isEmpty() && !amountStr.isEmpty()) {
-                dbHelper.updateSavingsTargetDetails(target.getId(), name, Double.parseDouble(amountStr));
-                refreshData();
-            }
-        });
-        builder.setNegativeButton("Batal", null);
-        builder.show();
-    }
-
-    private void showDeleteConfirm(SavingsTarget target) {
         new AlertDialog.Builder(context)
-                .setMessage("Hapus target tabungan ini?")
-                .setPositiveButton("Hapus", (d, w) -> {
-                    dbHelper.deleteSavingsTarget(target.getId());
-                    refreshData();
+                .setTitle("Nabung")
+                .setMessage("Tambah saldo untuk " + s.getName())
+                .setView(input)
+                .setPositiveButton("Simpan", (dialog, which) -> {
+                    String val = input.getText().toString().trim();
+                    if (!val.isEmpty()) {
+                        double add = Double.parseDouble(val);
+                        savingsRepo.updateCurrentAmount(s.getId(), s.getCurrentAmount() + add)
+                                .addOnSuccessListener(u -> sendRefreshBroadcast(context));
+                    }
                 })
-                .setNegativeButton("Batal", null)
                 .show();
     }
 
-    private void refreshData() {
+    private void showEditDialog(Context context, SavingsTarget s) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_edit_savings, null);
+
+        EditText editName = view.findViewById(R.id.editName);
+        EditText editTarget = view.findViewById(R.id.editTargetAmount);
+
+        editName.setText(s.getName());
+        editTarget.setText(String.valueOf((long)s.getTargetAmount()));
+
+        builder.setView(view)
+                .setTitle("Edit Target")
+                .setPositiveButton("Update", (dialog, which) -> {
+                    String newName = editName.getText().toString().trim();
+                    String newTargetStr = editTarget.getText().toString().trim();
+                    if(!newName.isEmpty() && !newTargetStr.isEmpty()){
+                        double newTarget = Double.parseDouble(newTargetStr);
+                        savingsRepo.updateTarget(s.getId(), newName, newTarget)
+                                .addOnSuccessListener(u -> {
+                                    Toast.makeText(context, "Target Diupdate", Toast.LENGTH_SHORT).show();
+                                    sendRefreshBroadcast(context);
+                                });
+                    }
+                })
+                .setNeutralButton("Hapus", (dialog, which) -> {
+                    new AlertDialog.Builder(context).setMessage("Hapus target ini?")
+                            .setPositiveButton("Ya", (d, w) -> {
+                                savingsRepo.delete(s.getId()).addOnSuccessListener(u -> sendRefreshBroadcast(context));
+                            }).show();
+                })
+                .show();
+    }
+
+    private void sendRefreshBroadcast(Context context) {
         Intent intent = new Intent("REFRESH_SAVINGS");
         context.sendBroadcast(intent);
+        context.sendBroadcast(new Intent("REFRESH_DASHBOARD"));
     }
 
     @Override
@@ -122,12 +128,12 @@ public class SavingsAdapter extends RecyclerView.Adapter<SavingsAdapter.ViewHold
         return savingsList.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
+    static class SavingsViewHolder extends RecyclerView.ViewHolder {
         TextView textName, textProgress;
         ProgressBar progressBar;
         ImageButton btnAddAmount;
 
-        public ViewHolder(View itemView) {
+        SavingsViewHolder(@NonNull View itemView) {
             super(itemView);
             textName = itemView.findViewById(R.id.textTargetName);
             textProgress = itemView.findViewById(R.id.textProgress);

@@ -1,14 +1,14 @@
 package com.example.sadardiri.ui;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import androidx.annotation.NonNull;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.view.WindowCompat; // PENTING
+import androidx.core.view.WindowCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
@@ -21,6 +21,7 @@ import com.example.sadardiri.fragment.HabitsFragment;
 import com.example.sadardiri.fragment.ReportsFragment;
 import com.example.sadardiri.fragment.SavingsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // 1. Cek Tema
+        // Tema
         SharedPreferences prefs = getSharedPreferences("app_settings", MODE_PRIVATE);
         boolean isNightMode = prefs.getBoolean("night_mode", false);
         if (isNightMode) {
@@ -40,9 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
 
-        // 2. AKTIFKAN LAYAR PENUH (Tembus Status Bar)
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-
         setContentView(R.layout.activity_main);
 
         viewPager = findViewById(R.id.viewPager);
@@ -51,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
         MainPagerAdapter pagerAdapter = new MainPagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
 
-        // 3. Efek Zoom Out saat geser menu
         viewPager.setPageTransformer((page, position) -> {
             float MIN_SCALE = 0.85f;
             float MIN_ALPHA = 0.5f;
@@ -92,6 +90,17 @@ public class MainActivity extends AppCompatActivity {
         });
 
         startEntryAnimation();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Kalau belum login, balik ke LoginActivity
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+        }
     }
 
     private void startEntryAnimation() {

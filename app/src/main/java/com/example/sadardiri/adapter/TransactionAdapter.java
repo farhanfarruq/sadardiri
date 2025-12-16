@@ -1,204 +1,168 @@
 package com.example.sadardiri.adapter;
 
 import android.app.AlertDialog;
-import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.core.content.ContextCompat;
+
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.sadardiri.R;
-import com.example.sadardiri.database.DatabaseHelper;
+import com.example.sadardiri.data.FirestoreTransactionRepository;
 import com.example.sadardiri.model.Transaction;
-import com.google.android.material.textfield.TextInputEditText;
 
-import java.text.NumberFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 
-public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.ViewHolder> {
-    private List<Transaction> transactionList;
-    private Context context;
-    private NumberFormat currencyFormat;
-    private DatabaseHelper dbHelper;
+public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.TransactionViewHolder> {
 
-    public TransactionAdapter(Context context, List<Transaction> transactionList) {
+    private final Context context;
+    private final List<Transaction> transactions;
+    private final FirestoreTransactionRepository transactionRepo = new FirestoreTransactionRepository();
+
+    public TransactionAdapter(Context context, List<Transaction> transactions) {
         this.context = context;
-        this.transactionList = transactionList != null ? transactionList : new ArrayList<>();
-        this.currencyFormat = NumberFormat.getCurrencyInstance(new Locale("in", "ID"));
-        this.currencyFormat.setMaximumFractionDigits(0);
-        this.dbHelper = new DatabaseHelper(context);
+        this.transactions = transactions;
     }
 
-    public void setData(List<Transaction> list) {
-        this.transactionList.clear();
-        this.transactionList.addAll(list);
+    public void setData(List<Transaction> newList) {
+        transactions.clear();
+        transactions.addAll(newList);
         notifyDataSetChanged();
     }
 
+    @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transaction, parent, false);
-        return new ViewHolder(view);
+    public TransactionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_transaction, parent, false);
+        return new TransactionViewHolder(v);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        Transaction transaction = transactionList.get(position);
+    public void onBindViewHolder(@NonNull TransactionViewHolder holder, int position) {
+        Transaction t = transactions.get(position);
 
-        holder.textCategory.setText(transaction.getCategory());
-        holder.textNote.setText(transaction.getNote() != null && !transaction.getNote().isEmpty() ? transaction.getNote() : "-");
+        holder.textNote.setText(t.getNote().isEmpty() ? "(Tanpa catatan)" : t.getNote());
+        holder.textDate.setText(t.getDate());
+        holder.textCategory.setText(t.getCategory());
 
-        String type = transaction.getType();
-        double amount = transaction.getAmount();
+        String prefix = t.getType().equalsIgnoreCase("income") ? "+ " : "- ";
+        holder.textAmount.setText(prefix + String.format("Rp %,.0f", t.getAmount()));
 
-        holder.textAmount.setText(
-                type.equals("income")
-                        ? "+ " + currencyFormat.format(amount)
-                        : "- " + currencyFormat.format(amount)
-        );
+        if (t.getType().equalsIgnoreCase("income")) {
+            holder.textAmount.setTextColor(Color.parseColor("#2E7D32"));
+        } else {
+            holder.textAmount.setTextColor(Color.parseColor("#C62828"));
+        }
 
-        int colorResId = type.equals("income") ? R.color.button_income : R.color.button_expense;
-        holder.textAmount.setTextColor(ContextCompat.getColor(context, colorResId));
-        holder.textDate.setText(transaction.getDate());
-
-        // LOGIKA TEKAN LAMA (OPSI)
+        // FITUR HOLD (Tekan Lama)
         holder.itemView.setOnLongClickListener(v -> {
-            showOptionDialog(transaction);
+            showEditDialog(t);
             return true;
         });
     }
 
-    private void showOptionDialog(Transaction transaction) {
-        String[] options = {"Edit Transaksi", "Hapus Transaksi"};
-        new AlertDialog.Builder(context)
-                .setTitle("Pilihan")
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        showEditDialog(transaction);
-                    } else {
-                        showDeleteConfirm(transaction);
-                    }
-                })
-                .show();
-    }
-
-    private void showDeleteConfirm(Transaction transaction) {
-        new AlertDialog.Builder(context)
-                .setMessage("Hapus transaksi ini?")
-                .setPositiveButton("Hapus", (d, w) -> {
-                    dbHelper.deleteTransaction(transaction.getId());
-                    refreshData();
-                    Toast.makeText(context, "Terhapus", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Batal", null)
-                .show();
-    }
-
-    private void showEditDialog(Transaction transaction) {
+    private void showEditDialog(Transaction t) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_edit_transaction, null);
 
-        TextInputEditText editAmount = view.findViewById(R.id.editAmount);
-        TextInputEditText editNote = view.findViewById(R.id.editNote);
+        EditText editAmount = view.findViewById(R.id.editAmount);
+        EditText editNote = view.findViewById(R.id.editNote);
         Spinner spinnerType = view.findViewById(R.id.spinnerType);
         Spinner spinnerCategory = view.findViewById(R.id.spinnerCategory);
         Button btnPickDate = view.findViewById(R.id.btnPickDate);
 
-        // Isi Data Lama
-        editAmount.setText(String.valueOf(transaction.getAmount()).replace(".0", ""));
-        editNote.setText(transaction.getNote());
-        btnPickDate.setText(transaction.getDate());
+        // Isi data lama
+        editAmount.setText(String.valueOf((long) t.getAmount()));
+        editNote.setText(t.getNote());
+        btnPickDate.setText(t.getDate());
 
-        // Setup Spinner Type
-        ArrayAdapter<CharSequence> typeAdapter = ArrayAdapter.createFromResource(context,
-                R.array.transaction_types, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> typeAdapter = ArrayAdapter.createFromResource(
+                context, R.array.transaction_types, android.R.layout.simple_spinner_item);
         typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerType.setAdapter(typeAdapter);
-        if (transaction.getType().equals("expense")) spinnerType.setSelection(1);
+        spinnerType.setSelection(t.getType().equalsIgnoreCase("income") ? 0 : 1);
 
-        // Setup Spinner Kategori
-        ArrayList<String> categories = new ArrayList<>();
-        ArrayList<Integer> categoryIds = new ArrayList<>();
-        Cursor cursor = dbHelper.getAllCategories();
-        int selectedCatIndex = 0;
-        int i = 0;
-        if (cursor.moveToFirst()) {
-            do {
-                String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
-                int id = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
-                categories.add(name);
-                categoryIds.add(id);
-                if (name.equals(transaction.getCategory())) selectedCatIndex = i;
-                i++;
-            } while (cursor.moveToNext());
-        }
-        cursor.close();
-
+        String[] categories = {"Makan", "Transport", "Belanja", "Tagihan", "Hiburan", "Kesehatan", "Pendidikan", "Gaji", "Bonus", "Lainnya"};
         ArrayAdapter<String> catAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, categories);
-        catAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(catAdapter);
-        spinnerCategory.setSelection(selectedCatIndex);
-
-        // Date Picker Logic
-        final String[] selectedDate = {transaction.getDate()};
-        btnPickDate.setOnClickListener(v -> {
-            Calendar c = Calendar.getInstance();
-            new DatePickerDialog(context, (view1, year, month, day) -> {
-                c.set(year, month, day);
-                selectedDate[0] = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(c.getTime());
-                btnPickDate.setText(selectedDate[0]);
-            }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
-        });
-
-        builder.setView(view);
-        builder.setPositiveButton("Simpan", (d, w) -> {
-            String amountStr = editAmount.getText().toString();
-            if(!amountStr.isEmpty()){
-                double amount = Double.parseDouble(amountStr);
-                String type = spinnerType.getSelectedItem().toString().equals("Pemasukan") ? "income" : "expense";
-                int catId = categoryIds.get(spinnerCategory.getSelectedItemPosition());
-                String note = editNote.getText().toString();
-
-                dbHelper.updateTransaction(transaction.getId(), amount, type, catId, note, selectedDate[0]);
-                refreshData();
-                Toast.makeText(context, "Diupdate!", Toast.LENGTH_SHORT).show();
+        for(int i=0; i<categories.length; i++) {
+            if(categories[i].equalsIgnoreCase(t.getCategory())) {
+                spinnerCategory.setSelection(i);
+                break;
             }
+        }
+
+        final String[] selectedDate = {t.getDate()};
+        btnPickDate.setOnClickListener(v -> {
+            java.util.Calendar c = java.util.Calendar.getInstance();
+            new android.app.DatePickerDialog(context, (view1, year, month, dayOfMonth) -> {
+                selectedDate[0] = String.format(java.util.Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth);
+                btnPickDate.setText(selectedDate[0]);
+            }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DAY_OF_MONTH)).show();
         });
-        builder.setNegativeButton("Batal", null);
-        builder.show();
+
+        builder.setView(view)
+                .setTitle("Edit Transaksi")
+                .setPositiveButton("Update", (dialog, which) -> {
+                    String amountStr = editAmount.getText().toString();
+                    if(amountStr.isEmpty()) return;
+
+                    double newAmount = Double.parseDouble(amountStr);
+                    String newNote = editNote.getText().toString();
+                    String newType = spinnerType.getSelectedItem().toString().equalsIgnoreCase("Pemasukan") ? "income" : "expense";
+                    String newCat = spinnerCategory.getSelectedItem() != null ? spinnerCategory.getSelectedItem().toString() : "Lainnya";
+
+                    Transaction newT = new Transaction(t.getId(), t.getUserId(), newAmount, newType, newNote, selectedDate[0], newCat);
+
+                    transactionRepo.update(t.getId(), newT).addOnSuccessListener(unused -> {
+                        Toast.makeText(context, "Update Berhasil", Toast.LENGTH_SHORT).show();
+                        sendRefreshBroadcast();
+                    });
+                })
+                .setNeutralButton("Hapus", (dialog, which) -> {
+                    new AlertDialog.Builder(context)
+                            .setMessage("Hapus transaksi ini?")
+                            .setPositiveButton("Ya", (d, w) -> {
+                                transactionRepo.delete(t.getId()).addOnSuccessListener(unused -> {
+                                    Toast.makeText(context, "Terhapus", Toast.LENGTH_SHORT).show();
+                                    sendRefreshBroadcast();
+                                });
+                            }).show();
+                })
+                .show();
     }
 
-    private void refreshData() {
+    private void sendRefreshBroadcast() {
         Intent intent = new Intent("REFRESH_FINANCE");
         context.sendBroadcast(intent);
+        context.sendBroadcast(new Intent("REFRESH_DASHBOARD"));
     }
 
     @Override
     public int getItemCount() {
-        return transactionList.size();
+        return transactions.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView textCategory, textNote, textAmount, textDate;
-        public ViewHolder(View itemView) {
+    static class TransactionViewHolder extends RecyclerView.ViewHolder {
+        TextView textAmount, textNote, textDate, textCategory;
+
+        TransactionViewHolder(@NonNull View itemView) {
             super(itemView);
-            textCategory = itemView.findViewById(R.id.textCategory);
-            textNote = itemView.findViewById(R.id.textNote);
             textAmount = itemView.findViewById(R.id.textAmount);
+            textNote = itemView.findViewById(R.id.textNote);
             textDate = itemView.findViewById(R.id.textDate);
+            textCategory = itemView.findViewById(R.id.textCategory);
         }
     }
 }

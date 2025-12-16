@@ -4,55 +4,45 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.example.sadardiri.model.Habit; // Menggunakan model.Habit
 import com.example.sadardiri.R;
-import com.example.sadardiri.database.DatabaseHelper;
+import com.example.sadardiri.model.Habit;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
+import java.util.List;
 
-public class HabitDashboardAdapter extends RecyclerView.Adapter<HabitDashboardAdapter.ViewHolder> {
-    private ArrayList<Habit> habits;
-    private DatabaseHelper dbHelper;
-    private Runnable onUpdate;
+public class HabitDashboardAdapter extends RecyclerView.Adapter<HabitDashboardAdapter.HabitDashViewHolder> {
 
-    public HabitDashboardAdapter(ArrayList<Habit> habits, DatabaseHelper dbHelper, Runnable onUpdate) {
+    private final List<Habit> habits;
+
+    public HabitDashboardAdapter(List<Habit> habits) {
         this.habits = habits;
-        this.dbHelper = dbHelper;
-        this.onUpdate = onUpdate;
     }
 
+    public void setData(List<Habit> newList) {
+        habits.clear();
+        habits.addAll(newList);
+        notifyDataSetChanged();
+    }
+
+    @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
+    public HabitDashViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Nama layout disesuaikan dengan file yang ada
+        View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_habit_dashboard, parent, false);
-        return new ViewHolder(view);
+        return new HabitDashViewHolder(v);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        Habit habit = habits.get(position);
-        holder.checkBox.setText(habit.getName());
+    public void onBindViewHolder(@NonNull HabitDashViewHolder holder, int position) {
+        Habit h = habits.get(position);
 
-        // FIX: isDone() sekarang tersedia
-        holder.checkBox.setChecked(habit.isDone());
-
-        holder.checkBox.setOnCheckedChangeListener(null);
-        holder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-            if (isChecked) {
-                dbHelper.logHabit(habit.getId(), today);
-            } else {
-                dbHelper.removeHabitLog(habit.getId(), today);
-            }
-            // FIX: setDone(boolean) sekarang tersedia
-            habit.setDone(isChecked);
-            if (onUpdate != null) onUpdate.run();
-        });
+        // XML hanya berisi CheckBox, jadi kita set text dan status di checkbox tersebut
+        holder.checkBox.setText(h.getName());
+        holder.checkBox.setChecked(h.isDone());
+        holder.checkBox.setEnabled(false); // Read-only untuk dashboard
     }
 
     @Override
@@ -60,10 +50,12 @@ public class HabitDashboardAdapter extends RecyclerView.Adapter<HabitDashboardAd
         return habits.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
+    static class HabitDashViewHolder extends RecyclerView.ViewHolder {
         CheckBox checkBox;
-        public ViewHolder(View itemView) {
+
+        HabitDashViewHolder(@NonNull View itemView) {
             super(itemView);
+            // ID disesuaikan dengan isi item_habit_dashboard.xml
             checkBox = itemView.findViewById(R.id.checkHabit);
         }
     }

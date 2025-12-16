@@ -1,8 +1,9 @@
 package com.example.sadardiri.fragment;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,102 +13,120 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.sadardiri.model.Habit;
 import com.example.sadardiri.R;
 import com.example.sadardiri.adapter.HabitAdapter;
-import com.example.sadardiri.database.DatabaseHelper;
+import com.example.sadardiri.data.FirestoreHabitRepository;
+import com.example.sadardiri.model.Habit;
 import com.example.sadardiri.ui.AddHabitActivity;
+// PENTING: Import ini harus ada!
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class HabitsFragment extends Fragment {
 
-    private DatabaseHelper dbHelper;
     private RecyclerView recyclerHabits;
     private TextView textHabitScore;
-    private View layoutEmptyHabits;
-    private FloatingActionButton btnAddHabit;
-    private HabitAdapter habitAdapter;
-    private List<Habit> habitList;
+    private View layoutEmptyHabits; // Ubah ke View/LinearLayout
+    private FloatingActionButton btnAddHabit; // PERBAIKAN: Ubah ke FloatingActionButton
 
+    private HabitAdapter habitAdapter;
+    private final List<Habit> habitList = new ArrayList<>();
+    private FirestoreHabitRepository habitRepo;
+
+    private BroadcastReceiver refreshReceiver;
+
+    @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+
         View view = inflater.inflate(R.layout.fragment_habits, container, false);
 
-        dbHelper = new DatabaseHelper(requireContext());
         recyclerHabits = view.findViewById(R.id.recyclerHabits);
         textHabitScore = view.findViewById(R.id.textHabitScore);
+
+        // PERBAIKAN: Casting ke tipe yang benar
         btnAddHabit = view.findViewById(R.id.btnAddHabit);
+
+        // Sesuaikan ID dengan XML
         layoutEmptyHabits = view.findViewById(R.id.layoutEmptyHabits);
 
-        Animation scaleUp = AnimationUtils.loadAnimation(requireContext(), R.anim.item_fall_down);
-        btnAddHabit.startAnimation(scaleUp);
+        habitRepo = new FirestoreHabitRepository();
 
         recyclerHabits.setLayoutManager(new LinearLayoutManager(requireContext()));
-        habitList = new ArrayList<>();
-        habitAdapter = new HabitAdapter(habitList, dbHelper);
+        habitAdapter = new HabitAdapter(habitList);
         recyclerHabits.setAdapter(habitAdapter);
 
-        btnAddHabit.setOnClickListener(v -> startActivity(new Intent(requireContext(), AddHabitActivity.class)));
+        Animation fallDown = AnimationUtils.loadAnimation(requireContext(), R.anim.item_fall_down);
+        LayoutAnimationController controller = new LayoutAnimationController(fallDown);
+        recyclerHabits.setLayoutAnimation(controller);
+
+        btnAddHabit.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), AddHabitActivity.class))
+        );
+
+        refreshReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if ("REFRESH_HABITS".equals(intent.getAction())) {
+                    loadHabits();
+                }
+            }
+        };
+        // Nanti kita perbaiki warning receiver di sini (lihat poin 2 di bawah)
+        IntentFilter filter = new IntentFilter("REFRESH_HABITS");
+        requireActivity().registerReceiver(refreshReceiver, filter);
 
         loadHabits();
-        updateHabitScore();
 
         return view;
     }
 
-    // --- PERBAIKAN ANIMASI ---
-    private void runLayoutAnimation(RecyclerView recyclerView) {
-        if (recyclerView == null || recyclerView.getAdapter() == null) return;
-
-        final Context context = recyclerView.getContext();
-        final LayoutAnimationController controller =
-                AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_fall_down);
-        recyclerView.setLayoutAnimation(controller);
-        recyclerView.scheduleLayoutAnimation();
-    }
-
     private void loadHabits() {
-        habitList.clear();
-        Cursor cursor = dbHelper.getAllHabits();
-        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-
-        if (cursor.moveToFirst()) {
-            do {
-                int id = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
-                String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
-                boolean done = dbHelper.isHabitDoneToday(id, today);
-                habitList.add(new Habit(id, name, done));
-            } while (cursor.moveToNext());
-        }
-        cursor.close();
-
-        if (habitList.isEmpty()) {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             layoutEmptyHabits.setVisibility(View.VISIBLE);
-            recyclerHabits.setVisibility(View.GONE);
-        } else {
-            layoutEmptyHabits.setVisibility(View.GONE);
-            recyclerHabits.setVisibility(View.VISIBLE);
+            textHabitScore.setText("Skor Hari Ini: -");
+            return;
         }
 
-        habitAdapter.notifyDataSetChanged();
-        runLayoutAnimation(recyclerHabits);
+        habitRepo.getAll()
+                .addOnSuccessListener(list -> {
+                    habitList.clear();
+                    habitList.addAll(list);
+                    habitAdapter.notifyDataSetChanged();
+
+                    if (habitList.isEmpty()) {
+                        layoutEmptyHabits.setVisibility(View.VISIBLE);
+                        textHabitScore.setText("Skor Hari Ini: -");
+                    } else {
+                        layoutEmptyHabits.setVisibility(View.GONE);
+                        updateHabitScore();
+                    }
+
+                    recyclerHabits.scheduleLayoutAnimation();
+                })
+                .addOnFailureListener(e -> {
+                    layoutEmptyHabits.setVisibility(View.VISIBLE);
+                    textHabitScore.setText("Gagal memuat");
+                });
     }
 
     private void updateHabitScore() {
-        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().getTime());
-        int completed = dbHelper.getCompletedHabitsToday(today);
-        int total = dbHelper.getTotalHabits();
+        int total = habitList.size();
+        int completed = 0;
+        for (Habit h : habitList) {
+            if (h.isDone()) completed++;
+        }
         int score = total > 0 ? (completed * 100 / total) : 0;
         textHabitScore.setText("Skor Hari Ini: " + score + "%");
     }
@@ -116,6 +135,13 @@ public class HabitsFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadHabits();
-        updateHabitScore();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        try {
+            requireActivity().unregisterReceiver(refreshReceiver);
+        } catch (Exception ignored) {}
     }
 }
